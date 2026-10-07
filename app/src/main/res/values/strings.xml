@@ -1,0 +1,55 @@
+<resources>
+    <string name="app_name">Zoco</string>
+    <string name="tagline">Mercado de Barrio</string>
+
+    <!-- Navigation -->
+    <string name="nav_catalog">Catálogo</string>
+    <string name="nav_cart">Carrito</string>
+    <string name="nav_seller">Vender</string>
+    <string name="nav_profile">Perfil</string>
+
+    <!-- Catalog Screen -->
+    <string name="search_placeholder">Buscar productos locales...</string>
+    <string name="category_all">Todos</string>
+    <string name="category_bakery">Panadería</string>
+    <string name="category_produce">Frutas y Verduras</string>
+    <string name="category_dairy">Lácteos</string>
+    <string name="category_crafts">Artesanías</string>
+    <string name="filter_express_delivery">Envío rápido disponible</string>
+    <string name="filter_in_stock">Solo disponibles</string>
+    <string name="add_to_cart">Agregar</string>
+    <string name="added_to_cart">¡Agregado al carrito!</string>
+    <string name="no_products_found">No se encontraron productos con estos filtros.</string>
+
+    <!-- Cart Screen -->
+    <string name="cart_title">Mi Pedido Local</string>
+    <string name="cart_empty">El carrito está vacío</string>
+    <string name="cart_total">Total a pagar:</string>
+    <string name="delivery_schedule_title">Horario de entrega / recogida</string>
+    <string name="select_time_button">Elegir horario</string>
+    <string name="scheduled_for">Programado para: %s</string>
+    <string name="confirm_order">Confirmar Pedido</string>
+    <string name="order_confirmed">¡Pedido confirmado con éxito!</string>
+    <string name="time_picker_title">Seleccionar hora de entrega</string>
+
+    <!-- Seller Screen -->
+    <string name="seller_title">Registrar Producto Local</string>
+    <string name="product_name_label">Nombre del producto</string>
+    <string name="product_price_label">Precio (MXN)</string>
+    <string name="product_category_label">Categoría</string>
+    <string name="product_producer_label">Productor / Negocio</string>
+    <string name="product_express_checkbox">Ofrece entrega inmediata</string>
+    <string name="save_product_button">Guardar en Catálogo</string>
+    <string name="product_saved_success">Producto registrado correctamente</string>
+    <string name="validation_required">Este campo es obligatorio</string>
+
+    <!-- Profile Screen -->
+    <string name="profile_title">Perfil de Usuario</string>
+    <string name="user_name">Comunidad Zoco</string>
+    <string name="user_role">Consumidor y Productor Local</string>
+    <string name="preferences_title">Preferencias</string>
+    <string name="language_label">Idioma de la aplicación</string>
+    <string name="language_es">Español</string>
+    <string name="language_en">Inglés</string>
+    <string name="offline_status">Modo Offline Activo (Base de datos local)</string>
+</resources>

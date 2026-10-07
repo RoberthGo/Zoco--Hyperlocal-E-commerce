@@ -1,0 +1,55 @@
+<resources>
+    <string name="app_name">Zoco</string>
+    <string name="tagline">Neighborhood Market</string>
+
+    <!-- Navigation -->
+    <string name="nav_catalog">Catalog</string>
+    <string name="nav_cart">Cart</string>
+    <string name="nav_seller">Sell</string>
+    <string name="nav_profile">Profile</string>
+
+    <!-- Catalog Screen -->
+    <string name="search_placeholder">Search local goods...</string>
+    <string name="category_all">All</string>
+    <string name="category_bakery">Bakery</string>
+    <string name="category_produce">Fruits &amp; Veggies</string>
+    <string name="category_dairy">Dairy</string>
+    <string name="category_crafts">Crafts</string>
+    <string name="filter_express_delivery">Express delivery available</string>
+    <string name="filter_in_stock">In stock only</string>
+    <string name="add_to_cart">Add</string>
+    <string name="added_to_cart">Added to cart!</string>
+    <string name="no_products_found">No products found for selected filters.</string>
+
+    <!-- Cart Screen -->
+    <string name="cart_title">My Local Order</string>
+    <string name="cart_empty">Your cart is empty</string>
+    <string name="cart_total">Total amount:</string>
+    <string name="delivery_schedule_title">Pickup / Delivery Schedule</string>
+    <string name="select_time_button">Choose Time</string>
+    <string name="scheduled_for">Scheduled for: %s</string>
+    <string name="confirm_order">Confirm Order</string>
+    <string name="order_confirmed">Order successfully confirmed!</string>
+    <string name="time_picker_title">Select delivery time</string>
+
+    <!-- Seller Screen -->
+    <string name="seller_title">Register Local Product</string>
+    <string name="product_name_label">Product Name</string>
+    <string name="product_price_label">Price (MXN)</string>
+    <string name="product_category_label">Category</string>
+    <string name="product_producer_label">Producer / Store</string>
+    <string name="product_express_checkbox">Offers immediate delivery</string>
+    <string name="save_product_button">Save to Catalog</string>
+    <string name="product_saved_success">Product registered successfully</string>
+    <string name="validation_required">This field is required</string>
+
+    <!-- Profile Screen -->
+    <string name="profile_title">User Profile</string>
+    <string name="user_name">Zoco Community</string>
+    <string name="user_role">Local Consumer &amp; Producer</string>
+    <string name="preferences_title">Preferences</string>
+    <string name="language_label">App Language</string>
+    <string name="language_es">Spanish</string>
+    <string name="language_en">English</string>
+    <string name="offline_status">Offline Mode Active (Local Database)</string>
+</resources>
