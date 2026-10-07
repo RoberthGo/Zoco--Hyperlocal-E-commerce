@@ -106,7 +106,6 @@ fun CartScreen(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Selector interactivo de TimePicker
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
@@ -165,7 +164,6 @@ fun CartScreen(
         }
     }
 
-    // Cuadro de diálogo del TimePicker
     if (showTimePickerDialog) {
         val initialHour = uiState.scheduledDeliveryTime.substringBefore(":").toIntOrNull() ?: 14
         val initialMinute = uiState.scheduledDeliveryTime.substringAfter(":").toIntOrNull() ?: 0

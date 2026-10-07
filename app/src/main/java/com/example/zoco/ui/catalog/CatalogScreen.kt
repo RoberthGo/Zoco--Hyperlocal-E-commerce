@@ -60,7 +60,6 @@ fun CatalogScreen(
             .fillMaxSize()
             .padding(horizontal = 16.dp, vertical = 8.dp)
     ) {
-        // Cajas de texto (TextField)
         OutlinedTextField(
             value = uiState.searchQuery,
             onValueChange = onSearchChange,
@@ -72,7 +71,6 @@ fun CatalogScreen(
 
         Spacer(modifier = Modifier.height(10.dp))
 
-        // Radios para categorías
         Text(
             text = stringResource(R.string.product_category_label),
             style = MaterialTheme.typography.labelLarge,
@@ -107,7 +105,6 @@ fun CatalogScreen(
             )
         }
 
-        // Checks (Checkbox)
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
@@ -124,7 +121,6 @@ fun CatalogScreen(
 
         Spacer(modifier = Modifier.height(6.dp))
 
-        // Soporte adaptable según ancho de pantalla
         BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
             if (uiState.isLoading) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -138,7 +134,6 @@ fun CatalogScreen(
                     )
                 }
             } else if (maxWidth >= 600.dp) {
-                // Modo tablet / pantalla ancha (Grid)
                 LazyVerticalGrid(
                     columns = GridCells.Adaptive(minSize = 260.dp),
                     contentPadding = PaddingValues(bottom = 80.dp),
@@ -156,7 +151,6 @@ fun CatalogScreen(
                     }
                 }
             } else {
-                // Modo smartphone compacto (Lista vertical)
                 LazyColumn(
                     contentPadding = PaddingValues(bottom = 80.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
@@ -257,7 +251,6 @@ fun ProductItemCard(
                     Spacer(modifier = Modifier.weight(1f))
                 }
 
-                // Botones interactivos
                 Button(onClick = onAddToCart) {
                     Icon(
                         Icons.Default.AddShoppingCart,

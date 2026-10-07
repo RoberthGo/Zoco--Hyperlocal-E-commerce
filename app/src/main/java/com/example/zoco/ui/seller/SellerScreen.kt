@@ -81,7 +81,6 @@ fun SellerScreen(
             }
         }
 
-        // Cajas de texto (TextFields)
         OutlinedTextField(
             value = uiState.name,
             onValueChange = onNameChange,
@@ -115,7 +114,6 @@ fun SellerScreen(
             minLines = 3
         )
 
-        // Radios para seleccionar categoría
         Text(
             text = stringResource(R.string.product_category_label),
             style = MaterialTheme.typography.labelLarge,
@@ -141,7 +139,6 @@ fun SellerScreen(
             }
         }
 
-        // Checks (Checkbox)
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.fillMaxWidth()
@@ -158,7 +155,6 @@ fun SellerScreen(
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // Botón para guardar producto
         Button(
             onClick = onSaveProduct,
             modifier = Modifier.fillMaxWidth()

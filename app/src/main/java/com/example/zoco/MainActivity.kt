@@ -85,7 +85,6 @@ fun ZocoApp(
         val isWideScreen = maxWidth >= 600.dp
 
         if (isWideScreen) {
-            // Diseño para tablets y pantallas grandes con NavigationRail
             Row(modifier = Modifier.fillMaxSize()) {
                 NavigationRail {
                     Screen.values().forEach { screen ->
@@ -137,7 +136,6 @@ fun ZocoApp(
                 }
             }
         } else {
-            // Diseño para smartphones con barra de navegación inferior (NavigationBar)
             Scaffold(
                 snackbarHost = { SnackbarHost(snackbarHostState) },
                 topBar = {
