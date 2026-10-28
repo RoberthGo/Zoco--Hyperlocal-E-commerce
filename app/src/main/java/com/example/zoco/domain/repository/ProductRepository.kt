@@ -12,5 +12,6 @@ interface ProductRepository {
     suspend fun updateProduct(product: Product): Boolean
     suspend fun deleteProduct(product: Product): Boolean
     suspend fun deleteProductById(id: Long): Boolean
+    suspend fun syncProductsFromRemote(): Boolean
     suspend fun populateInitialDataIfEmpty()
 }

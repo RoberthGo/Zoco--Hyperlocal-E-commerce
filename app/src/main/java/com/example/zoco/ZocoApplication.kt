@@ -2,6 +2,7 @@ package com.example.zoco
 
 import android.app.Application
 import com.example.zoco.data.local.ZocoDatabase
+import com.example.zoco.data.remote.RetrofitClient
 import com.example.zoco.data.repository.ProductRepositoryImpl
 import com.example.zoco.domain.repository.ProductRepository
 
@@ -12,7 +13,10 @@ class ZocoApplication : Application() {
     }
 
     val productRepository: ProductRepository by lazy {
-        ProductRepositoryImpl(database.productDao())
+        ProductRepositoryImpl(
+            productDao = database.productDao(),
+            productApiService = RetrofitClient.productApiService
+        )
     }
 
     override fun onCreate() {
