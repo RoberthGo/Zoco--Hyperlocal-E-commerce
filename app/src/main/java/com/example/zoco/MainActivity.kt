@@ -12,6 +12,7 @@ import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationRail
@@ -22,28 +23,25 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.navigation.compose.rememberNavController
 import com.example.zoco.data.local.ZocoDatabase
 import com.example.zoco.data.repository.ProductRepositoryImpl
-import com.example.zoco.ui.cart.CartScreen
 import com.example.zoco.ui.cart.CartViewModel
-import com.example.zoco.ui.catalog.CatalogScreen
 import com.example.zoco.ui.catalog.CatalogViewModel
 import com.example.zoco.ui.common.ViewModelFactory
 import com.example.zoco.ui.navigation.Screen
-import com.example.zoco.ui.profile.ProfileScreen
-import com.example.zoco.ui.seller.SellerScreen
+import com.example.zoco.ui.navigation.ZocoNavHost
 import com.example.zoco.ui.seller.SellerViewModel
 import com.example.zoco.ui.theme.ZocoTheme
 
@@ -70,6 +68,8 @@ fun ZocoApp(
     viewModelFactory: ViewModelFactory,
     modifier: Modifier = Modifier
 ) {
+    val navController = rememberNavController()
+
     val catalogViewModel: CatalogViewModel = viewModel(factory = viewModelFactory)
     val cartViewModel: CartViewModel = viewModel()
     val sellerViewModel: SellerViewModel = viewModel(factory = viewModelFactory)
@@ -78,7 +78,11 @@ fun ZocoApp(
     val cartState by cartViewModel.uiState.collectAsStateWithLifecycle()
     val sellerState by sellerViewModel.uiState.collectAsStateWithLifecycle()
 
-    var currentScreen by remember { mutableStateOf(Screen.CATALOG) }
+    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentDestination = navBackStackEntry?.destination
+    val currentRoute = currentDestination?.route
+    val currentScreen = Screen.fromRoute(currentRoute)
+
     val snackbarHostState = remember { SnackbarHostState() }
 
     BoxWithConstraints(modifier = modifier.fillMaxSize()) {
@@ -87,10 +91,20 @@ fun ZocoApp(
         if (isWideScreen) {
             Row(modifier = Modifier.fillMaxSize()) {
                 NavigationRail {
-                    Screen.values().forEach { screen ->
+                    Screen.entries.forEach { screen ->
                         NavigationRailItem(
                             selected = currentScreen == screen,
-                            onClick = { currentScreen = screen },
+                            onClick = {
+                                if (currentRoute != screen.route) {
+                                    navController.navigate(screen.route) {
+                                        popUpTo(navController.graph.findStartDestination().id) {
+                                            saveState = true
+                                        }
+                                        launchSingleTop = true
+                                        restoreState = true
+                                    }
+                                }
+                            },
                             icon = {
                                 if (screen == Screen.CART && cartState.items.isNotEmpty()) {
                                     BadgedBox(badge = { Badge { Text(cartState.items.size.toString()) } }) {
@@ -122,8 +136,8 @@ fun ZocoApp(
                         )
                     }
                 ) { innerPadding ->
-                    ScreenContent(
-                        currentScreen = currentScreen,
+                    ZocoNavHost(
+                        navController = navController,
                         catalogViewModel = catalogViewModel,
                         catalogState = catalogState,
                         cartViewModel = cartViewModel,
@@ -154,10 +168,20 @@ fun ZocoApp(
                 },
                 bottomBar = {
                     NavigationBar {
-                        Screen.values().forEach { screen ->
+                        Screen.entries.forEach { screen ->
                             NavigationBarItem(
                                 selected = currentScreen == screen,
-                                onClick = { currentScreen = screen },
+                                onClick = {
+                                    if (currentRoute != screen.route) {
+                                        navController.navigate(screen.route) {
+                                            popUpTo(navController.graph.findStartDestination().id) {
+                                                saveState = true
+                                            }
+                                            launchSingleTop = true
+                                            restoreState = true
+                                        }
+                                    }
+                                },
                                 icon = {
                                     if (screen == Screen.CART && cartState.items.isNotEmpty()) {
                                         BadgedBox(badge = { Badge { Text(cartState.items.size.toString()) } }) {
@@ -173,8 +197,8 @@ fun ZocoApp(
                     }
                 }
             ) { innerPadding ->
-                ScreenContent(
-                    currentScreen = currentScreen,
+                ZocoNavHost(
+                    navController = navController,
                     catalogViewModel = catalogViewModel,
                     catalogState = catalogState,
                     cartViewModel = cartViewModel,
@@ -185,60 +209,6 @@ fun ZocoApp(
                     modifier = Modifier.padding(innerPadding)
                 )
             }
-        }
-    }
-}
-
-@Composable
-private fun ScreenContent(
-    currentScreen: Screen,
-    catalogViewModel: CatalogViewModel,
-    catalogState: com.example.zoco.ui.catalog.CatalogUiState,
-    cartViewModel: CartViewModel,
-    cartState: com.example.zoco.ui.cart.CartUiState,
-    sellerViewModel: SellerViewModel,
-    sellerState: com.example.zoco.ui.seller.SellerUiState,
-    snackbarHostState: SnackbarHostState,
-    modifier: Modifier = Modifier
-) {
-    when (currentScreen) {
-        Screen.CATALOG -> {
-            CatalogScreen(
-                uiState = catalogState,
-                onSearchChange = catalogViewModel::onSearchQueryChanged,
-                onCategoryChange = catalogViewModel::onCategorySelected,
-                onExpressFilterChange = catalogViewModel::onExpressFilterToggled,
-                onAddToCart = cartViewModel::addProduct,
-                snackbarHostState = snackbarHostState,
-                modifier = modifier
-            )
-        }
-        Screen.CART -> {
-            CartScreen(
-                uiState = cartState,
-                onRemoveProduct = cartViewModel::removeProduct,
-                onTimeSelected = cartViewModel::setScheduledTime,
-                onConfirmOrder = cartViewModel::confirmOrder,
-                modifier = modifier
-            )
-        }
-        Screen.SELLER -> {
-            SellerScreen(
-                uiState = sellerState,
-                onNameChange = sellerViewModel::onNameChanged,
-                onDescriptionChange = sellerViewModel::onDescriptionChanged,
-                onPriceChange = sellerViewModel::onPriceChanged,
-                onCategoryChange = sellerViewModel::onCategoryChanged,
-                onProducerNameChange = sellerViewModel::onProducerNameChanged,
-                onExpressChange = sellerViewModel::onExpressChanged,
-                onSaveProduct = sellerViewModel::saveProduct,
-                modifier = modifier
-            )
-        }
-        Screen.PROFILE -> {
-            ProfileScreen(
-                modifier = modifier
-            )
         }
     }
 }

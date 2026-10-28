@@ -9,11 +9,18 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import com.example.zoco.R
 
 enum class Screen(
+    val route: String,
     val titleResId: Int,
     val icon: ImageVector
 ) {
-    CATALOG(R.string.nav_catalog, Icons.Default.ShoppingBag),
-    CART(R.string.nav_cart, Icons.Default.ShoppingCart),
-    SELLER(R.string.nav_seller, Icons.Default.Storefront),
-    PROFILE(R.string.nav_profile, Icons.Default.Person)
+    CATALOG("catalog", R.string.nav_catalog, Icons.Default.ShoppingBag),
+    CART("cart", R.string.nav_cart, Icons.Default.ShoppingCart),
+    SELLER("seller", R.string.nav_seller, Icons.Default.Storefront),
+    PROFILE("profile", R.string.nav_profile, Icons.Default.Person);
+
+    companion object {
+        fun fromRoute(route: String?): Screen {
+            return entries.firstOrNull { it.route == route } ?: CATALOG
+        }
+    }
 }
