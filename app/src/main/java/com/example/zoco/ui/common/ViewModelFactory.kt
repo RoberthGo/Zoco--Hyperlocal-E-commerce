@@ -2,12 +2,12 @@ package com.example.zoco.ui.common
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
-import com.example.zoco.data.repository.ProductRepositoryImpl
+import com.example.zoco.domain.repository.ProductRepository
 import com.example.zoco.ui.catalog.CatalogViewModel
 import com.example.zoco.ui.seller.SellerViewModel
 
 class ViewModelFactory(
-    private val repository: ProductRepositoryImpl
+    private val repository: ProductRepository
 ) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T {

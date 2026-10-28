@@ -142,7 +142,7 @@ com.example.zoco
 | **Navegación con NavHost** | Migrado formalmente con `ZocoNavHost` y `NavController` | **100%** | **Completado en TASK-01**. |
 | **Repository Local (Room)** | `ProductRepositoryImpl` conectado a `ProductDao` | **70%** | Funciona lectura y creación de productos; faltan DAOs de multimedia y notificaciones. |
 | **Repository Network (Retrofit)** | Dependencias configuradas en Gradle, sin llamadas activas | **20%** | Falta crear `ProductApiService`, cliente Retrofit y conectar al repositorio. |
-| **Flujo de Dependencias (App -> Activity -> VM -> Repo)** | Instanciación manual en `MainActivity.onCreate()` | **50%** | Falta crear clase `ZocoApplication` para centralizar la inyección hacia la Activity. |
+| **Flujo de Dependencias (App -> Activity -> VM -> Repo)** | `ZocoApplication` registrada en Manifest e inyectando repositorios | **100%** | **Completado en TASK-02**. |
 | **Base de datos (Transacciones + 50% CRUD)** | Listar y Guardar productos transacciona en Room | **50%** | Faltan métodos de editar, eliminar y ver detalle, más entidades de notificación y multimedia. |
 | **Web API (Retrofit + 50% peticiones)** | Modelos y librerías preparadas; falta enlace remoto | **20%** | Debe implementarse el consumo mock/real de al menos listar y agregar vía API. |
 
@@ -368,7 +368,7 @@ graph TD
 ## 6. Plan de Trabajo y Tareas Pendientes
 
 * [x] **TASK-01: Migrar la Navegación a NavHost oficial** (Completada)
-* [ ] **TASK-02: Implementar la clase ZocoApplication para el flujo de dependencias**
+* [x] **TASK-02: Implementar la clase ZocoApplication para el flujo de dependencias** (Completada)
 * [ ] **TASK-03: Completar el CRUD en ProductDao y Repositorio (update, delete, getById)**
 * [ ] **TASK-04: Crear Entidades y DAOs para Notificaciones y Multimedia**
 * [ ] **TASK-05: Implementar la capa remota con Retrofit (data/remote, ApiService y DTOs)**

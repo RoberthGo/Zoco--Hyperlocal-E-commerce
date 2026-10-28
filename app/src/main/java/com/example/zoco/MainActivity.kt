@@ -35,8 +35,6 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import com.example.zoco.data.local.ZocoDatabase
-import com.example.zoco.data.repository.ProductRepositoryImpl
 import com.example.zoco.ui.cart.CartViewModel
 import com.example.zoco.ui.catalog.CatalogViewModel
 import com.example.zoco.ui.common.ViewModelFactory
@@ -50,9 +48,8 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
-        val database = ZocoDatabase.getInstance(applicationContext)
-        val repository = ProductRepositoryImpl(database.productDao())
-        val viewModelFactory = ViewModelFactory(repository)
+        val app = application as ZocoApplication
+        val viewModelFactory = ViewModelFactory(app.productRepository)
 
         setContent {
             ZocoTheme {
