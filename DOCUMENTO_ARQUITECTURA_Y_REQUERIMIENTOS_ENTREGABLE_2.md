@@ -141,7 +141,7 @@ com.example.zoco
 | **Funcionalidad de UI (>= 75% funcional)** | Catálogo (~95%), Carrito (~80%), Vendedor (~75%), Perfil (~50%) | **75%** | Se cumple con el mínimo del 75%. Falta enriquecer Perfil y edición de vendedor. |
 | **Navegación con NavHost** | Migrado formalmente con `ZocoNavHost` y `NavController` | **100%** | **Completado en TASK-01**. |
 | **Repository Local (Room)** | `ProductRepositoryImpl` conectado a `ProductDao` | **70%** | Funciona lectura y creación de productos; faltan DAOs de multimedia y notificaciones. |
-| **Repository Network (Retrofit)** | Dependencias configuradas en Gradle, sin llamadas activas | **20%** | Falta crear `ProductApiService`, cliente Retrofit y conectar al repositorio. |
+| **Repository Network (Retrofit)** | `RetrofitClient`, `ProductApiService` y `ProductDto` creados con Moshi | **80%** | **Completado en TASK-05**. Falta enlazarlo con el repositorio para consumo sincrónico/híbrido. |
 | **Flujo de Dependencias (App -> Activity -> VM -> Repo)** | `ZocoApplication` registrada en Manifest e inyectando repositorios | **100%** | **Completado en TASK-02**. |
 | **Base de datos (Transacciones + 50% CRUD)** | CRUD completo de productos y modelos de Notificaciones y Multimedia | **100%** | **Completado en TASK-03 y TASK-04**. Tablas `products`, `notifications` y `media` listas en Room v2. |
 | **Web API (Retrofit + 50% peticiones)** | Modelos y librerías preparadas; falta enlace remoto | **20%** | Debe implementarse el consumo mock/real de al menos listar y agregar vía API. |
@@ -371,5 +371,5 @@ graph TD
 * [x] **TASK-02: Implementar la clase ZocoApplication para el flujo de dependencias** (Completada)
 * [x] **TASK-03: Completar el CRUD en ProductDao y Repositorio (update, delete, getById)** (Completada)
 * [x] **TASK-04: Crear Entidades y DAOs para Notificaciones y Multimedia** (Completada)
-* [ ] **TASK-05: Implementar la capa remota con Retrofit (data/remote, ApiService y DTOs)**
+* [x] **TASK-05: Implementar la capa remota con Retrofit (data/remote, ApiService y DTOs)** (Completada)
 * [ ] **TASK-06: Conectar la Web API en ProductRepositoryImpl**
