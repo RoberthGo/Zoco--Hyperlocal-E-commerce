@@ -1,5 +1,6 @@
 package com.example.zoco.ui.catalog
 
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -16,6 +17,7 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddShoppingCart
 import androidx.compose.material.icons.filled.Search
@@ -54,6 +56,7 @@ fun CatalogScreen(
 ) {
     val scope = rememberCoroutineScope()
     val addedMessage = stringResource(R.string.added_to_cart)
+    val categoryScrollState = rememberScrollState()
 
     Column(
         modifier = modifier
@@ -76,11 +79,13 @@ fun CatalogScreen(
             style = MaterialTheme.typography.labelLarge,
             fontWeight = FontWeight.Bold
         )
+
         Row(
             modifier = Modifier
                 .fillMaxWidth()
+                .horizontalScroll(categoryScrollState)
                 .padding(vertical = 4.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             CategoryRadioItem(
@@ -102,6 +107,11 @@ fun CatalogScreen(
                 label = stringResource(R.string.category_dairy),
                 selected = uiState.selectedCategory == ProductCategory.DAIRY,
                 onClick = { onCategoryChange(ProductCategory.DAIRY) }
+            )
+            CategoryRadioItem(
+                label = stringResource(R.string.category_crafts),
+                selected = uiState.selectedCategory == ProductCategory.CRAFTS,
+                onClick = { onCategoryChange(ProductCategory.CRAFTS) }
             )
         }
 
@@ -177,8 +187,7 @@ private fun CategoryRadioItem(
     onClick: () -> Unit
 ) {
     Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier.padding(end = 4.dp)
+        verticalAlignment = Alignment.CenterVertically
     ) {
         RadioButton(
             selected = selected,
@@ -186,7 +195,8 @@ private fun CategoryRadioItem(
         )
         Text(
             text = label,
-            style = MaterialTheme.typography.bodySmall
+            style = MaterialTheme.typography.bodySmall,
+            maxLines = 1
         )
     }
 }
