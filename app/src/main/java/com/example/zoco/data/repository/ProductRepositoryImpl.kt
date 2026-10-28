@@ -33,8 +33,24 @@ class ProductRepositoryImpl(
         }
     }
 
+    override suspend fun getProductById(id: Long): Product? {
+        return productDao.getProductById(id)?.toDomain()
+    }
+
     override suspend fun insertProduct(product: Product): Long {
         return productDao.insertProduct(ProductEntity.fromDomain(product))
+    }
+
+    override suspend fun updateProduct(product: Product): Boolean {
+        return productDao.updateProduct(ProductEntity.fromDomain(product)) > 0
+    }
+
+    override suspend fun deleteProduct(product: Product): Boolean {
+        return productDao.deleteProduct(ProductEntity.fromDomain(product)) > 0
+    }
+
+    override suspend fun deleteProductById(id: Long): Boolean {
+        return productDao.deleteProductById(id) > 0
     }
 
     override suspend fun populateInitialDataIfEmpty() {

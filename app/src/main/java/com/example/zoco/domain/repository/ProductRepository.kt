@@ -7,6 +7,10 @@ import kotlinx.coroutines.flow.Flow
 interface ProductRepository {
     fun getProducts(): Flow<List<Product>>
     fun getProductsFiltered(query: String, category: ProductCategory, expressOnly: Boolean): Flow<List<Product>>
+    suspend fun getProductById(id: Long): Product?
     suspend fun insertProduct(product: Product): Long
+    suspend fun updateProduct(product: Product): Boolean
+    suspend fun deleteProduct(product: Product): Boolean
+    suspend fun deleteProductById(id: Long): Boolean
     suspend fun populateInitialDataIfEmpty()
 }

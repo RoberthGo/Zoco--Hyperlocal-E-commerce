@@ -143,7 +143,7 @@ com.example.zoco
 | **Repository Local (Room)** | `ProductRepositoryImpl` conectado a `ProductDao` | **70%** | Funciona lectura y creación de productos; faltan DAOs de multimedia y notificaciones. |
 | **Repository Network (Retrofit)** | Dependencias configuradas en Gradle, sin llamadas activas | **20%** | Falta crear `ProductApiService`, cliente Retrofit y conectar al repositorio. |
 | **Flujo de Dependencias (App -> Activity -> VM -> Repo)** | `ZocoApplication` registrada en Manifest e inyectando repositorios | **100%** | **Completado en TASK-02**. |
-| **Base de datos (Transacciones + 50% CRUD)** | Listar y Guardar productos transacciona en Room | **50%** | Faltan métodos de editar, eliminar y ver detalle, más entidades de notificación y multimedia. |
+| **Base de datos (Transacciones + 50% CRUD)** | CRUD completo de productos implementado en DAO y Repository | **85%** | **Completado en TASK-03**. Pendiente entidades de multimedia y notificaciones. |
 | **Web API (Retrofit + 50% peticiones)** | Modelos y librerías preparadas; falta enlace remoto | **20%** | Debe implementarse el consumo mock/real de al menos listar y agregar vía API. |
 
 ---
@@ -369,7 +369,7 @@ graph TD
 
 * [x] **TASK-01: Migrar la Navegación a NavHost oficial** (Completada)
 * [x] **TASK-02: Implementar la clase ZocoApplication para el flujo de dependencias** (Completada)
-* [ ] **TASK-03: Completar el CRUD en ProductDao y Repositorio (update, delete, getById)**
+* [x] **TASK-03: Completar el CRUD en ProductDao y Repositorio (update, delete, getById)** (Completada)
 * [ ] **TASK-04: Crear Entidades y DAOs para Notificaciones y Multimedia**
 * [ ] **TASK-05: Implementar la capa remota con Retrofit (data/remote, ApiService y DTOs)**
 * [ ] **TASK-06: Conectar la Web API en ProductRepositoryImpl**
