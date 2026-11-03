@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 data class CatalogUiState(
@@ -17,7 +18,9 @@ data class CatalogUiState(
     val selectedCategory: ProductCategory = ProductCategory.ALL,
     val expressOnly: Boolean = false,
     val products: List<Product> = emptyList(),
-    val isLoading: Boolean = false
+    val isLoading: Boolean = false,
+    val isSyncing: Boolean = false,
+    val syncMessage: String? = null
 )
 
 class CatalogViewModel(
@@ -27,25 +30,40 @@ class CatalogViewModel(
     private val _searchQuery = MutableStateFlow("")
     private val _selectedCategory = MutableStateFlow(ProductCategory.ALL)
     private val _expressOnly = MutableStateFlow(false)
+    private val _isSyncing = MutableStateFlow(false)
+    private val _syncMessage = MutableStateFlow<String?>(null)
 
     val uiState: StateFlow<CatalogUiState> = combine(
         repository.getProducts(),
         _searchQuery,
         _selectedCategory,
-        _expressOnly
-    ) { products, query, category, expressOnly ->
+        _expressOnly,
+        _isSyncing,
+        _syncMessage
+    ) { args: Array<Any?> ->
+        @Suppress("UNCHECKED_CAST")
+        val products = args[0] as List<Product>
+        val query = args[1] as String
+        val category = args[2] as ProductCategory
+        val expressOnly = args[3] as Boolean
+        val isSyncing = args[4] as Boolean
+        val syncMessage = args[5] as? String
+
         val filtered = products.filter { product ->
             val matchesQuery = query.isBlank() || product.name.contains(query, ignoreCase = true) || product.description.contains(query, ignoreCase = true)
             val matchesCategory = category == ProductCategory.ALL || product.category == category
             val matchesExpress = !expressOnly || product.isExpressDelivery
             matchesQuery && matchesCategory && matchesExpress
         }
+
         CatalogUiState(
             searchQuery = query,
             selectedCategory = category,
             expressOnly = expressOnly,
             products = filtered,
-            isLoading = false
+            isLoading = false,
+            isSyncing = isSyncing,
+            syncMessage = syncMessage
         )
     }.stateIn(
         scope = viewModelScope,
@@ -55,7 +73,12 @@ class CatalogViewModel(
 
     init {
         viewModelScope.launch {
-            repository.populateInitialDataIfEmpty()
+            // Intentar primero sincronizar catálogo desde la Web API de Django
+            val synced = repository.syncProductsFromRemote()
+            if (!synced) {
+                // Si la Web API está apagada o no hay conexión, cargar catálogo local inicial
+                repository.populateInitialDataIfEmpty()
+            }
         }
     }
 
@@ -69,5 +92,30 @@ class CatalogViewModel(
 
     fun onExpressFilterToggled(enabled: Boolean) {
         _expressOnly.value = enabled
+    }
+
+    fun syncFromWeb() {
+        viewModelScope.launch {
+            _isSyncing.value = true
+            _syncMessage.value = "Conectando con Django REST API..."
+            val success = repository.syncProductsFromRemote()
+            _isSyncing.value = false
+            _syncMessage.value = if (success) {
+                "¡Catálogo sincronizado exitosamente con la Web API!"
+            } else {
+                "Web API no disponible. Mostrando datos de Room local."
+            }
+        }
+    }
+
+    fun deleteProduct(product: Product) {
+        viewModelScope.launch {
+            repository.deleteProduct(product)
+            _syncMessage.value = "Producto eliminado de Room y de la Web API: ${product.name}"
+        }
+    }
+
+    fun clearSyncMessage() {
+        _syncMessage.value = null
     }
 }

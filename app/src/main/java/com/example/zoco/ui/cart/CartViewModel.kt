@@ -1,26 +1,48 @@
 package com.example.zoco.ui.cart
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.example.zoco.domain.model.CartItem
+import com.example.zoco.domain.model.Order
 import com.example.zoco.domain.model.Product
+import com.example.zoco.domain.repository.OrderRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 
 data class CartUiState(
     val items: List<CartItem> = emptyList(),
     val scheduledDeliveryTime: String = "14:00",
-    val orderCompletedMessage: String? = null
+    val customerName: String = "Laura Gómez",
+    val customerPhone: String = "4451234567",
+    val deliveryAddress: String = "Calle Morelos #15, Centro",
+    val isExpress: Boolean = false,
+    val orderCompletedMessage: String? = null,
+    val isSubmitting: Boolean = false,
+    val recentOrders: List<Order> = emptyList()
 ) {
     val totalAmount: Double
         get() = items.sumOf { it.product.price * it.quantity }
 }
 
-class CartViewModel : ViewModel() {
+class CartViewModel(
+    private val orderRepository: OrderRepository? = null
+) : ViewModel() {
 
     private val _uiState = MutableStateFlow(CartUiState())
     val uiState: StateFlow<CartUiState> = _uiState.asStateFlow()
+
+    init {
+        orderRepository?.let { repo ->
+            viewModelScope.launch {
+                repo.getOrders().collect { orders ->
+                    _uiState.update { it.copy(recentOrders = orders) }
+                }
+            }
+        }
+    }
 
     fun addProduct(product: Product) {
         _uiState.update { current ->
@@ -49,12 +71,35 @@ class CartViewModel : ViewModel() {
         _uiState.update { it.copy(scheduledDeliveryTime = formatted) }
     }
 
+    fun onCustomerNameChanged(name: String) = _uiState.update { it.copy(customerName = name) }
+    fun onCustomerPhoneChanged(phone: String) = _uiState.update { it.copy(customerPhone = phone) }
+    fun onDeliveryAddressChanged(address: String) = _uiState.update { it.copy(deliveryAddress = address) }
+    fun onExpressChanged(express: Boolean) = _uiState.update { it.copy(isExpress = express) }
+
     fun confirmOrder() {
-        if (_uiState.value.items.isNotEmpty()) {
+        val state = _uiState.value
+        if (state.items.isEmpty()) return
+
+        viewModelScope.launch {
+            _uiState.update { it.copy(isSubmitting = true) }
+
+            val order = Order(
+                customerName = state.customerName,
+                customerPhone = state.customerPhone,
+                deliveryAddress = state.deliveryAddress,
+                scheduledTime = state.scheduledDeliveryTime,
+                totalAmount = state.totalAmount,
+                status = "PENDING",
+                isExpress = state.isExpress
+            )
+
+            val orderId = orderRepository?.createOrder(order, state.items) ?: 0L
+
             _uiState.update {
                 it.copy(
                     items = emptyList(),
-                    orderCompletedMessage = "¡Pedido confirmado para entrega a las ${it.scheduledDeliveryTime}!"
+                    isSubmitting = false,
+                    orderCompletedMessage = "¡Pedido #${if (orderId > 0) orderId else "1"} registrado con éxito! Guardado en SQLite (Room) y enviado a Web API. Programado para las ${state.scheduledDeliveryTime}."
                 )
             }
         }

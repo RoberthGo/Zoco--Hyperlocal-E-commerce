@@ -41,6 +41,8 @@ fun ZocoNavHost(
                 onCategoryChange = catalogViewModel::onCategorySelected,
                 onExpressFilterChange = catalogViewModel::onExpressFilterToggled,
                 onAddToCart = cartViewModel::addProduct,
+                onSyncWeb = catalogViewModel::syncFromWeb,
+                onDeleteProduct = catalogViewModel::deleteProduct,
                 snackbarHostState = snackbarHostState
             )
         }
@@ -50,6 +52,10 @@ fun ZocoNavHost(
                 uiState = cartState,
                 onRemoveProduct = cartViewModel::removeProduct,
                 onTimeSelected = cartViewModel::setScheduledTime,
+                onNameChange = cartViewModel::onCustomerNameChanged,
+                onPhoneChange = cartViewModel::onCustomerPhoneChanged,
+                onAddressChange = cartViewModel::onDeliveryAddressChanged,
+                onExpressChange = cartViewModel::onExpressChanged,
                 onConfirmOrder = cartViewModel::confirmOrder
             )
         }
