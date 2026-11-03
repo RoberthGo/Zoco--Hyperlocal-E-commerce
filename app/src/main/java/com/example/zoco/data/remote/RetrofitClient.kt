@@ -1,5 +1,7 @@
 package com.example.zoco.data.remote
 
+import com.example.zoco.data.remote.api.NotificationApiService
+import com.example.zoco.data.remote.api.OrderApiService
 import com.example.zoco.data.remote.api.ProductApiService
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
@@ -11,8 +13,13 @@ import java.util.concurrent.TimeUnit
 
 object RetrofitClient {
 
-    // URL base por defecto para el backend de la API REST (10.0.2.2 es el localhost del host en emulador Android)
-    private const val DEFAULT_BASE_URL = "https://api.zoco-local.com/v1/"
+    // 10.0.2.2 es el host localhost en el emulador Android.
+    // Para dispositivo físico se puede cambiar por la IP local de la computadora (ej. http://192.168.1.X:8000/api/v1/)
+    const val DEFAULT_BASE_URL = "http://10.0.2.2:8000/api/v1/"
+
+    @Volatile
+    var currentBaseUrl: String = DEFAULT_BASE_URL
+        private set
 
     private val moshi: Moshi by lazy {
         Moshi.Builder()
@@ -27,29 +34,57 @@ object RetrofitClient {
 
         OkHttpClient.Builder()
             .addInterceptor(logging)
-            .connectTimeout(15, TimeUnit.SECONDS)
-            .readTimeout(15, TimeUnit.SECONDS)
-            .writeTimeout(15, TimeUnit.SECONDS)
+            .connectTimeout(8, TimeUnit.SECONDS)
+            .readTimeout(8, TimeUnit.SECONDS)
+            .writeTimeout(8, TimeUnit.SECONDS)
             .build()
     }
 
-    val retrofit: Retrofit by lazy {
-        createRetrofit(DEFAULT_BASE_URL)
-    }
+    @Volatile
+    private var retrofitInstance: Retrofit = createRetrofit(DEFAULT_BASE_URL)
 
-    val productApiService: ProductApiService by lazy {
-        retrofit.create(ProductApiService::class.java)
-    }
+    @Volatile
+    var productApiService: ProductApiService = retrofitInstance.create(ProductApiService::class.java)
+        private set
+
+    @Volatile
+    var orderApiService: OrderApiService = retrofitInstance.create(OrderApiService::class.java)
+        private set
+
+    @Volatile
+    var notificationApiService: NotificationApiService = retrofitInstance.create(NotificationApiService::class.java)
+        private set
 
     fun createRetrofit(baseUrl: String): Retrofit {
+        val safeUrl = if (baseUrl.endsWith("/")) baseUrl else "$baseUrl/"
         return Retrofit.Builder()
-            .baseUrl(baseUrl)
+            .baseUrl(safeUrl)
             .client(okHttpClient)
             .addConverterFactory(MoshiConverterFactory.create(moshi))
             .build()
     }
 
-    fun createProductApiService(baseUrl: String): ProductApiService {
-        return createRetrofit(baseUrl).create(ProductApiService::class.java)
+    /**
+     * Permite reconfigurar la URL base dinámicamente desde la interfaz (ej. desde Perfil).
+     */
+    fun updateBaseUrl(newUrl: String) {
+        val safeUrl = if (newUrl.endsWith("/")) newUrl else "$newUrl/"
+        currentBaseUrl = safeUrl
+        retrofitInstance = createRetrofit(safeUrl)
+        productApiService = retrofitInstance.create(ProductApiService::class.java)
+        orderApiService = retrofitInstance.create(OrderApiService::class.java)
+        notificationApiService = retrofitInstance.create(NotificationApiService::class.java)
+    }
+
+    /**
+     * Prueba si el backend Django responde exitosamente.
+     */
+    suspend fun pingBackend(): Boolean {
+        return try {
+            productApiService.getProducts()
+            true
+        } catch (e: Exception) {
+            false
+        }
     }
 }
