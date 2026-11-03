@@ -49,7 +49,10 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
 
         val app = application as ZocoApplication
-        val viewModelFactory = ViewModelFactory(app.productRepository)
+        val viewModelFactory = ViewModelFactory(
+            productRepository = app.productRepository,
+            orderRepository = app.orderRepository
+        )
 
         setContent {
             ZocoTheme {
@@ -68,7 +71,7 @@ fun ZocoApp(
     val navController = rememberNavController()
 
     val catalogViewModel: CatalogViewModel = viewModel(factory = viewModelFactory)
-    val cartViewModel: CartViewModel = viewModel()
+    val cartViewModel: CartViewModel = viewModel(factory = viewModelFactory)
     val sellerViewModel: SellerViewModel = viewModel(factory = viewModelFactory)
 
     val catalogState by catalogViewModel.uiState.collectAsStateWithLifecycle()

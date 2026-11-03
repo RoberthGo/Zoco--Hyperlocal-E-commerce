@@ -138,13 +138,13 @@ com.example.zoco
 | :--- | :--- | :---: | :--- |
 | **Documento y Arquitectura (Diagramas UML y DB)** | Completado en esta versión 2.0 | **100%** | Se agregaron diagramas de DB (ERD), paquetes, componentes y despliegue. |
 | **Definición de UI (Compose + ViewModel)** | 4 pantallas creadas (Catálogo, Carrito, Vendedor, Perfil) | **100%** | Todas las interfaces principales están implementadas en Compose. |
-| **Funcionalidad de UI (>= 75% funcional)** | Catálogo (~95%), Carrito (~80%), Vendedor (~75%), Perfil (~50%) | **75%** | Se cumple con el mínimo del 75%. Falta enriquecer Perfil y edición de vendedor. |
+| **Funcionalidad de UI (>= 75% funcional)** | Catálogo (100%), Carrito (100%), Vendedor (100%), Perfil (100%) | **100%** | Todas las pantallas operativas con transacciones reactivas en Room y Web API. |
 | **Navegación con NavHost** | Migrado formalmente con `ZocoNavHost` y `NavController` | **100%** | **Completado en TASK-01**. |
-| **Repository Local (Room)** | `ProductRepositoryImpl` conectado a `ProductDao` | **70%** | Funciona lectura y creación de productos; faltan DAOs de multimedia y notificaciones. |
-| **Repository Network (Retrofit)** | Integrado en `ProductRepositoryImpl` con sincronización protegida offline-first | **100%** | **Completado en TASK-05 y TASK-06**. Listo para conectar URL base cuando la API esté desplegada. |
-| **Flujo de Dependencias (App -> Activity -> VM -> Repo)** | `ZocoApplication` registrada en Manifest e inyectando repositorios | **100%** | **Completado en TASK-02**. |
-| **Base de datos (Transacciones + 50% CRUD)** | CRUD completo de productos y modelos de Notificaciones y Multimedia | **100%** | **Completado en TASK-03 y TASK-04**. Tablas `products`, `notifications` y `media` listas en Room v2. |
-| **Web API (Retrofit + 50% peticiones)** | Modelos y librerías preparadas; falta enlace remoto | **20%** | Debe implementarse el consumo mock/real de al menos listar y agregar vía API. |
+| **Repository Local (Room)** | `ProductRepositoryImpl` y `OrderRepositoryImpl` conectados a Room | **100%** | Entidades y DAOs completos: `products`, `orders`, `notifications`, `media`. |
+| **Repository Network (Retrofit)** | Integrado con `ProductApiService`, `OrderApiService` y `NotificationApiService` | **100%** | Conexión directa a la API REST de Django con fallback offline-first. |
+| **Flujo de Dependencias (App -> Activity -> VM -> Repo)** | `ZocoApplication` registrada en Manifest e inyectando repositorios | **100%** | Inyección completa en `ViewModelFactory` para todos los ViewModels. |
+| **Base de datos (Transacciones + 50% CRUD)** | CRUD completo de productos y modelos de Pedidos, Notificaciones y Multimedia | **100%** | Transacciones locales y remotas funcionando con SQLite Room v3. |
+| **Web API (Retrofit + 50% peticiones)** | Peticiones HTTP reales: GET, POST, PUT, DELETE sobre Django REST API | **100%** | Sincronización bidireccional de catálogo, alta de productos, checkout y cancelaciones. |
 
 ---
 
@@ -373,3 +373,7 @@ graph TD
 * [x] **TASK-04: Crear Entidades y DAOs para Notificaciones y Multimedia** (Completada)
 * [x] **TASK-05: Implementar la capa remota con Retrofit (data/remote, ApiService y DTOs)** (Completada)
 * [x] **TASK-06: Conectar la Web API en ProductRepositoryImpl** (Completada)
+* [x] **TASK-07: Implementar OrderEntity, OrderDao y OrderRepository con persistencia local y remota** (Completada)
+* [x] **TASK-08: Conectar RetrofitClient con la API REST Django (HTTP 10.0.2.2 / cleartextTraffic)** (Completada)
+* [x] **TASK-09: Agregar botón de sincronización bidireccional y eliminación en Catálogo** (Completada)
+* [x] **TASK-10: Implementar checkout completo en Carrito y panel de conexión en Perfil** (Completada)

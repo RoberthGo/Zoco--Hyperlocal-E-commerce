@@ -9,19 +9,27 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccessTime
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.LocalShipping
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TimePicker
 import androidx.compose.material3.rememberTimePickerState
@@ -38,6 +46,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import com.example.zoco.R
 import com.example.zoco.domain.model.CartItem
+import com.example.zoco.domain.model.Order
 import com.example.zoco.domain.model.Product
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -46,6 +55,10 @@ fun CartScreen(
     uiState: CartUiState,
     onRemoveProduct: (Product) -> Unit,
     onTimeSelected: (Int, Int) -> Unit,
+    onNameChange: (String) -> Unit = {},
+    onPhoneChange: (String) -> Unit = {},
+    onAddressChange: (String) -> Unit = {},
+    onExpressChange: (Boolean) -> Unit = {},
     onConfirmOrder: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -62,20 +75,32 @@ fun CartScreen(
             fontWeight = FontWeight.Bold
         )
 
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(10.dp))
 
         if (uiState.orderCompletedMessage != null) {
             Card(
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
-                modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp)
             ) {
-                Text(
-                    text = uiState.orderCompletedMessage,
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer,
-                    modifier = Modifier.padding(16.dp)
-                )
+                Row(
+                    modifier = Modifier.padding(14.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        Icons.Default.CheckCircle,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                    Spacer(modifier = Modifier.size(10.dp))
+                    Text(
+                        text = uiState.orderCompletedMessage,
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                }
             }
         }
 
@@ -86,10 +111,20 @@ fun CartScreen(
                     .fillMaxWidth(),
                 contentAlignment = Alignment.Center
             ) {
-                Text(
-                    text = stringResource(R.string.cart_empty),
-                    style = MaterialTheme.typography.bodyLarge
-                )
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        text = stringResource(R.string.cart_empty),
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                    if (uiState.recentOrders.isNotEmpty()) {
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text(
+                            text = "Tus pedidos recientes (${uiState.recentOrders.size}):",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
             }
         } else {
             LazyColumn(
@@ -102,81 +137,139 @@ fun CartScreen(
                         onRemove = { onRemoveProduct(item.product) }
                     )
                 }
+
+                item {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                    ) {
+                        Column(modifier = Modifier.padding(14.dp)) {
+                            Text(
+                                text = "Datos de Entrega y Envío",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            OutlinedTextField(
+                                value = uiState.customerName,
+                                onValueChange = onNameChange,
+                                label = { Text("Nombre del Comprador") },
+                                modifier = Modifier.fillMaxWidth(),
+                                singleLine = true
+                            )
+                            Spacer(modifier = Modifier.height(6.dp))
+                            OutlinedTextField(
+                                value = uiState.deliveryAddress,
+                                onValueChange = onAddressChange,
+                                label = { Text("Dirección de Entrega") },
+                                modifier = Modifier.fillMaxWidth(),
+                                singleLine = true
+                            )
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Checkbox(
+                                        checked = uiState.isExpress,
+                                        onCheckedChange = onExpressChange
+                                    )
+                                    Text("Entrega Express")
+                                }
+
+                                OutlinedButton(onClick = { showTimePickerDialog = true }) {
+                                    Icon(
+                                        Icons.Default.AccessTime,
+                                        contentDescription = null,
+                                        modifier = Modifier.padding(end = 4.dp)
+                                    )
+                                    Text(uiState.scheduledDeliveryTime)
+                                }
+                            }
+                        }
+                    }
+                }
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
+            // Total y botón de confirmación transaccional
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
             ) {
                 Column(modifier = Modifier.padding(14.dp)) {
-                    Text(
-                        text = stringResource(R.string.delivery_schedule_title),
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Spacer(modifier = Modifier.height(6.dp))
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = stringResource(R.string.scheduled_for, uiState.scheduledDeliveryTime),
-                            style = MaterialTheme.typography.bodyMedium
+                            text = stringResource(R.string.cart_total_label),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
                         )
-                        OutlinedButton(onClick = { showTimePickerDialog = true }) {
-                            Icon(Icons.Default.AccessTime, contentDescription = null, modifier = Modifier.padding(end = 4.dp))
-                            Text(stringResource(R.string.select_time_button))
+                        Text(
+                            text = "\$${"%.2f".format(uiState.totalAmount)}",
+                            style = MaterialTheme.typography.headlineSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    Button(
+                        onClick = onConfirmOrder,
+                        enabled = !uiState.isSubmitting,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        if (uiState.isSubmitting) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(20.dp),
+                                color = MaterialTheme.colorScheme.onPrimary,
+                                strokeWidth = 2.dp
+                            )
+                        } else {
+                            Icon(
+                                Icons.Default.LocalShipping,
+                                contentDescription = null,
+                                modifier = Modifier.padding(end = 6.dp)
+                            )
+                            Text(stringResource(R.string.confirm_order_button))
                         }
                     }
                 }
             }
+        }
 
-            Spacer(modifier = Modifier.height(12.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+        // Historial de pedidos recientes desde SQLite Room
+        if (uiState.recentOrders.isNotEmpty() && uiState.items.isEmpty()) {
+            LazyColumn(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Text(
-                    text = stringResource(R.string.cart_total),
-                    style = MaterialTheme.typography.titleMedium
-                )
-                Text(
-                    text = "\$${"%.2f".format(uiState.totalAmount)}",
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
-                )
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            Button(
-                onClick = onConfirmOrder,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(text = stringResource(R.string.confirm_order))
+                items(uiState.recentOrders, key = { it.id }) { order ->
+                    RecentOrderCard(order = order)
+                }
             }
         }
     }
 
     if (showTimePickerDialog) {
-        val initialHour = uiState.scheduledDeliveryTime.substringBefore(":").toIntOrNull() ?: 14
-        val initialMinute = uiState.scheduledDeliveryTime.substringAfter(":").toIntOrNull() ?: 0
         val timePickerState = rememberTimePickerState(
-            initialHour = initialHour,
-            initialMinute = initialMinute,
+            initialHour = 14,
+            initialMinute = 0,
             is24Hour = true
         )
 
         Dialog(onDismissRequest = { showTimePickerDialog = false }) {
             Card(
                 modifier = Modifier.padding(16.dp),
-                shape = MaterialTheme.shapes.extraLarge,
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
             ) {
                 Column(
@@ -184,29 +277,24 @@ fun CartScreen(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
-                        text = stringResource(R.string.time_picker_title),
+                        text = stringResource(R.string.select_time_dialog_title),
                         style = MaterialTheme.typography.titleMedium,
-                        modifier = Modifier.padding(bottom = 12.dp)
+                        fontWeight = FontWeight.Bold
                     )
+                    Spacer(modifier = Modifier.height(16.dp))
                     TimePicker(state = timePickerState)
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(16.dp))
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.End
                     ) {
-                        OutlinedButton(
-                            onClick = { showTimePickerDialog = false },
-                            modifier = Modifier.padding(end = 8.dp)
-                        ) {
-                            Text("Cancelar")
-                        }
                         Button(
                             onClick = {
                                 onTimeSelected(timePickerState.hour, timePickerState.minute)
                                 showTimePickerDialog = false
                             }
                         ) {
-                            Text("Aceptar")
+                            Text(stringResource(R.string.dialog_accept))
                         }
                     }
                 }
@@ -216,11 +304,15 @@ fun CartScreen(
 }
 
 @Composable
-private fun CartItemRow(
+fun CartItemRow(
     item: CartItem,
-    onRemove: () -> Unit
+    onRemove: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
-    Card(modifier = Modifier.fillMaxWidth()) {
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+    ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -229,18 +321,81 @@ private fun CartItemRow(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Text(text = item.product.name, fontWeight = FontWeight.SemiBold)
                 Text(
-                    text = "${item.quantity}x \$${"%.2f".format(item.product.price)}",
+                    text = item.product.name,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = "${item.quantity} x \$${"%.2f".format(item.product.price)}",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.outline
                 )
             }
+
+            Text(
+                text = "\$${"%.2f".format(item.product.price * item.quantity)}",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.secondary,
+                modifier = Modifier.padding(horizontal = 8.dp)
+            )
+
             IconButton(onClick = onRemove) {
                 Icon(
                     Icons.Default.Delete,
-                    contentDescription = null,
+                    contentDescription = stringResource(R.string.remove_item),
                     tint = MaterialTheme.colorScheme.error
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun RecentOrderCard(order: Order) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+    ) {
+        Column(modifier = Modifier.padding(12.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = "Pedido #${order.id}",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = order.status,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+            if (order.itemSummary.isNotBlank()) {
+                Text(
+                    text = order.itemSummary,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.padding(vertical = 4.dp)
+                )
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = "Hora: ${order.scheduledTime}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.outline
+                )
+                Text(
+                    text = "Total: \$${"%.2f".format(order.totalAmount)}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.secondary
                 )
             }
         }

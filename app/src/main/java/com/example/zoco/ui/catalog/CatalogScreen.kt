@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -20,13 +21,18 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddShoppingCart
+import androidx.compose.material.icons.filled.CloudSync
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
@@ -51,6 +57,8 @@ fun CatalogScreen(
     onCategoryChange: (ProductCategory) -> Unit,
     onExpressFilterChange: (Boolean) -> Unit,
     onAddToCart: (Product) -> Unit,
+    onSyncWeb: () -> Unit = {},
+    onDeleteProduct: (Product) -> Unit = {},
     snackbarHostState: SnackbarHostState,
     modifier: Modifier = Modifier
 ) {
@@ -63,14 +71,63 @@ fun CatalogScreen(
             .fillMaxSize()
             .padding(horizontal = 16.dp, vertical = 8.dp)
     ) {
-        OutlinedTextField(
-            value = uiState.searchQuery,
-            onValueChange = onSearchChange,
+        // Barra superior con buscador y botón de sincronización Web API
+        Row(
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text(stringResource(R.string.search_placeholder)) },
-            leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-            singleLine = true
-        )
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            OutlinedTextField(
+                value = uiState.searchQuery,
+                onValueChange = onSearchChange,
+                modifier = Modifier.weight(1f),
+                placeholder = { Text(stringResource(R.string.search_placeholder)) },
+                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                singleLine = true
+            )
+
+            FilledTonalButton(
+                onClick = onSyncWeb,
+                enabled = !uiState.isSyncing
+            ) {
+                if (uiState.isSyncing) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(18.dp),
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    Icon(
+                        Icons.Default.CloudSync,
+                        contentDescription = "Sincronizar con Web API"
+                    )
+                }
+            }
+        }
+
+        if (uiState.syncMessage != null) {
+            Spacer(modifier = Modifier.height(6.dp))
+            Card(
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer
+                ),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = uiState.syncMessage,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+            }
+        }
 
         Spacer(modifier = Modifier.height(10.dp))
 
@@ -138,10 +195,18 @@ fun CatalogScreen(
                 }
             } else if (uiState.products.isEmpty()) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text(
-                        text = stringResource(R.string.no_products_found),
-                        style = MaterialTheme.typography.bodyLarge
-                    )
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            text = stringResource(R.string.no_products_found),
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Button(onClick = onSyncWeb) {
+                            Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.size(6.dp))
+                            Text("Sincronizar desde Web API")
+                        }
+                    }
                 }
             } else if (maxWidth >= 600.dp) {
                 LazyVerticalGrid(
@@ -156,7 +221,8 @@ fun CatalogScreen(
                             onAddToCart = {
                                 onAddToCart(product)
                                 scope.launch { snackbarHostState.showSnackbar(addedMessage) }
-                            }
+                            },
+                            onDelete = { onDeleteProduct(product) }
                         )
                     }
                 }
@@ -171,7 +237,8 @@ fun CatalogScreen(
                             onAddToCart = {
                                 onAddToCart(product)
                                 scope.launch { snackbarHostState.showSnackbar(addedMessage) }
-                            }
+                            },
+                            onDelete = { onDeleteProduct(product) }
                         )
                     }
                 }
@@ -205,6 +272,7 @@ private fun CategoryRadioItem(
 fun ProductItemCard(
     product: Product,
     onAddToCart: () -> Unit,
+    onDelete: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     Card(
@@ -261,13 +329,28 @@ fun ProductItemCard(
                     Spacer(modifier = Modifier.weight(1f))
                 }
 
-                Button(onClick = onAddToCart) {
-                    Icon(
-                        Icons.Default.AddShoppingCart,
-                        contentDescription = null,
-                        modifier = Modifier.padding(end = 4.dp)
-                    )
-                    Text(text = stringResource(R.string.add_to_cart))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(
+                        onClick = onDelete,
+                        modifier = Modifier.size(36.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.Delete,
+                            contentDescription = "Eliminar de base de datos y Web API",
+                            tint = MaterialTheme.colorScheme.error.copy(alpha = 0.8f)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.size(4.dp))
+
+                    Button(onClick = onAddToCart) {
+                        Icon(
+                            Icons.Default.AddShoppingCart,
+                            contentDescription = null,
+                            modifier = Modifier.padding(end = 4.dp)
+                        )
+                        Text(text = stringResource(R.string.add_to_cart))
+                    }
                 }
             }
         }
