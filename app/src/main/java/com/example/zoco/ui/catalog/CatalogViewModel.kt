@@ -73,11 +73,12 @@ class CatalogViewModel(
 
     init {
         viewModelScope.launch {
-            // Intentar primero sincronizar catálogo desde la Web API de Django
+            // Asegurar que el catálogo local offline esté poblado en Room
+            repository.populateInitialDataIfEmpty()
+            // Sincronizar catálogo desde la Web API de Django
             val synced = repository.syncProductsFromRemote()
-            if (!synced) {
-                // Si la Web API está apagada o no hay conexión, cargar catálogo local inicial
-                repository.populateInitialDataIfEmpty()
+            if (synced) {
+                _syncMessage.value = "¡Catálogo Web API sincronizado exitosamente!"
             }
         }
     }

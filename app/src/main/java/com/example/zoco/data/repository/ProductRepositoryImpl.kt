@@ -132,47 +132,52 @@ class ProductRepositoryImpl(
         if (productDao.getProductCount() == 0) {
             val initialProducts = listOf(
                 ProductEntity(
-                    name = "Pan Artesanal de Masa Madre",
-                    description = "Elaborado localmente con fermentación lenta de 24 horas.",
-                    price = 45.0,
-                    category = ProductCategory.BAKERY.name,
-                    producerName = "Panadería Don Pedro",
-                    isExpressDelivery = true,
-                    inStock = true
-                ),
-                ProductEntity(
-                    name = "Miel de Abeja Pura 500g",
-                    description = "Cosechada de apiarios sustentables de la región.",
-                    price = 110.0,
-                    category = ProductCategory.PRODUCE.name,
-                    producerName = "Apícola del Valle",
-                    isExpressDelivery = true,
-                    inStock = true
-                ),
-                ProductEntity(
-                    name = "Queso Fresco de Rancho",
-                    description = "100% leche de vaca natural sin conservadores.",
-                    price = 85.0,
-                    category = ProductCategory.DAIRY.name,
-                    producerName = "Lácteos Santa Rosa",
-                    isExpressDelivery = false,
-                    inStock = true
-                ),
-                ProductEntity(
-                    name = "Canasta Tejida a Mano",
-                    description = "Hecha de palma natural por artesanos de la comunidad.",
-                    price = 180.0,
-                    category = ProductCategory.CRAFTS.name,
-                    producerName = "Manos Creativas",
-                    isExpressDelivery = false,
-                    inStock = true
-                ),
-                ProductEntity(
-                    name = "Manzanas Orgánicas (1 kg)",
-                    description = "Frescas, sin pesticidas, recién cortadas del huerto.",
+                    id = 101,
+                    name = "[📱 Local / Offline] Pan de Pueblo Horneado a la Leña",
+                    description = "Elaborado localmente con fermentación tradicional en horno de leña comunitario.",
                     price = 40.0,
+                    category = ProductCategory.BAKERY.name,
+                    producerName = "Panadería San José [Local Offline]",
+                    isExpressDelivery = true,
+                    inStock = true
+                ),
+                ProductEntity(
+                    id = 102,
+                    name = "[📱 Local / Offline] Miel Silvestre de Monte (500g)",
+                    description = "Miel pura no pasteurizada, conservada en el dispositivo en modo offline.",
+                    price = 95.0,
                     category = ProductCategory.PRODUCE.name,
-                    producerName = "Huerta Los Nogales",
+                    producerName = "Apícola Los Sauces [Local Offline]",
+                    isExpressDelivery = true,
+                    inStock = true
+                ),
+                ProductEntity(
+                    id = 103,
+                    name = "[📱 Local / Offline] Queso Fresco Ranchero de Hoja",
+                    description = "Queso artesanal envuelto en hoja de plátano, 100% natural de establo local.",
+                    price = 65.0,
+                    category = ProductCategory.DAIRY.name,
+                    producerName = "Rancho San Antonio [Local Offline]",
+                    isExpressDelivery = false,
+                    inStock = true
+                ),
+                ProductEntity(
+                    id = 104,
+                    name = "[📱 Local / Offline] Canasta de Vara Tejida Tradicional",
+                    description = "Artesanía de vara de sauz tejida a mano disponible en catálogo local.",
+                    price = 110.0,
+                    category = ProductCategory.CRAFTS.name,
+                    producerName = "Artesanías El Roble [Local Offline]",
+                    isExpressDelivery = false,
+                    inStock = true
+                ),
+                ProductEntity(
+                    id = 105,
+                    name = "[📱 Local / Offline] Naranjas Dulces de Huerto (2 kg)",
+                    description = "Cosecha fresca local disponible sin requerir conexión a internet.",
+                    price = 35.0,
+                    category = ProductCategory.PRODUCE.name,
+                    producerName = "Huerta La Cañada [Local Offline]",
                     isExpressDelivery = true,
                     inStock = true
                 )

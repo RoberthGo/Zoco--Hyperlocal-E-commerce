@@ -98,6 +98,38 @@ class OrderRepositoryImpl(
         }
     }
 
+    override suspend fun populateInitialOrdersIfEmpty() {
+        if (orderDao.getOrderCount() == 0) {
+            val initialOrders = listOf(
+                OrderEntity(
+                    id = 101,
+                    customerName = "[📱 Local / Offline] Juan Comprador (Room SQLite)",
+                    customerPhone = "4451122334",
+                    deliveryAddress = "Calle Morelos #15, Centro Local",
+                    scheduledTime = "15:00",
+                    totalAmount = 80.0,
+                    status = "LOCAL_STORED",
+                    isExpress = false,
+                    itemSummary = "2x [📱 Local / Offline] Pan de Pueblo Horneado a la Leña",
+                    createdAt = System.currentTimeMillis() - 7200000
+                ),
+                OrderEntity(
+                    id = 102,
+                    customerName = "[📱 Local / Offline] María Local (Room SQLite)",
+                    customerPhone = "4459988776",
+                    deliveryAddress = "Barrio San Juan #4, Localidad",
+                    scheduledTime = "17:30",
+                    totalAmount = 95.0,
+                    status = "LOCAL_STORED",
+                    isExpress = true,
+                    itemSummary = "1x [📱 Local / Offline] Miel Silvestre de Monte (500g)",
+                    createdAt = System.currentTimeMillis() - 3600000
+                )
+            )
+            orderDao.insertOrders(initialOrders)
+        }
+    }
+
     override suspend fun deleteOrder(id: Long): Boolean {
         val rows = orderDao.deleteOrderById(id)
         if (rows > 0) {

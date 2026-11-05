@@ -37,9 +37,21 @@ class CartViewModel(
     init {
         orderRepository?.let { repo ->
             viewModelScope.launch {
+                repo.populateInitialOrdersIfEmpty()
+                repo.syncOrdersFromRemote()
+            }
+            viewModelScope.launch {
                 repo.getOrders().collect { orders ->
                     _uiState.update { it.copy(recentOrders = orders) }
                 }
+            }
+        }
+    }
+
+    fun syncOrdersFromWeb() {
+        orderRepository?.let { repo ->
+            viewModelScope.launch {
+                repo.syncOrdersFromRemote()
             }
         }
     }

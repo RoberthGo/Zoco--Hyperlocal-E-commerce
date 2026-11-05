@@ -56,7 +56,8 @@ fun ZocoNavHost(
                 onPhoneChange = cartViewModel::onCustomerPhoneChanged,
                 onAddressChange = cartViewModel::onDeliveryAddressChanged,
                 onExpressChange = cartViewModel::onExpressChanged,
-                onConfirmOrder = cartViewModel::confirmOrder
+                onConfirmOrder = cartViewModel::confirmOrder,
+                onSyncOrders = cartViewModel::syncOrdersFromWeb
             )
         }
 

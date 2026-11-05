@@ -18,7 +18,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.filled.CloudSync
 import androidx.compose.material.icons.filled.LocalShipping
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -60,6 +64,7 @@ fun CartScreen(
     onAddressChange: (String) -> Unit = {},
     onExpressChange: (Boolean) -> Unit = {},
     onConfirmOrder: () -> Unit,
+    onSyncOrders: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     var showTimePickerDialog by remember { mutableStateOf(false) }
@@ -118,11 +123,24 @@ fun CartScreen(
                     )
                     if (uiState.recentOrders.isNotEmpty()) {
                         Spacer(modifier = Modifier.height(16.dp))
-                        Text(
-                            text = "Tus pedidos recientes (${uiState.recentOrders.size}):",
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.Bold
-                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "Tus pedidos recientes (${uiState.recentOrders.size}):",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold
+                            )
+                            IconButton(onClick = onSyncOrders, modifier = Modifier.size(32.dp)) {
+                                Icon(
+                                    Icons.Default.CloudSync,
+                                    contentDescription = "Sincronizar pedidos con Web API",
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -354,6 +372,7 @@ fun CartItemRow(
 
 @Composable
 fun RecentOrderCard(order: Order) {
+    val isOnline = order.customerName.contains("En Línea") || order.customerName.contains("Web API") || order.itemSummary.contains("En Línea")
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
@@ -361,18 +380,42 @@ fun RecentOrderCard(order: Order) {
         Column(modifier = Modifier.padding(12.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = "Pedido #${order.id}",
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = "Pedido #${order.id}",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = if (isOnline) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.secondaryContainer
+                    ) {
+                        Text(
+                            text = if (isOnline) "🌐 Web API" else "📱 Room Local",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = if (isOnline) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSecondaryContainer,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                        )
+                    }
+                }
                 Text(
                     text = order.status,
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.Bold
+                )
+            }
+            if (order.customerName.isNotBlank()) {
+                Text(
+                    text = "Cliente: ${order.customerName}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.outline,
+                    modifier = Modifier.padding(top = 2.dp)
                 )
             }
             if (order.itemSummary.isNotBlank()) {

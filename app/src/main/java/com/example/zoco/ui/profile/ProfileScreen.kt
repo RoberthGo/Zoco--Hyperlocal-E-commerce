@@ -232,34 +232,6 @@ fun ProfileScreen(
             }
         }
 
-        // Estado de Base de Datos Local (Room / SQLite)
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
-        ) {
-            Column(modifier = Modifier.padding(14.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        Icons.Default.Storage,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSecondaryContainer
-                    )
-                    Spacer(modifier = Modifier.size(8.dp))
-                    Text(
-                        text = "Base de Datos Local (Room / SQLite)",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSecondaryContainer
-                    )
-                }
-                Spacer(modifier = Modifier.height(6.dp))
-                Text(
-                    text = "• Archivo: zoco_database.db (v3)\n• Entidades: products, orders, notifications, media\n• DAOs activos: ProductDao, OrderDao, NotificationDao, MediaDao\n• Arquitectura: Single Source of Truth Offline-First",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSecondaryContainer
-                )
-            }
-        }
 
         // Preferencias de Idioma
         Card(modifier = Modifier.fillMaxWidth()) {
