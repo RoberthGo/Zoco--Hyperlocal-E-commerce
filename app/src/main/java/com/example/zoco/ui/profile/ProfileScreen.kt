@@ -1,5 +1,6 @@
 package com.example.zoco.ui.profile
 
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -13,14 +14,13 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
-import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Cloud
 import androidx.compose.material.icons.filled.CloudDone
 import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.NetworkCheck
 import androidx.compose.material.icons.filled.Storage
-import androidx.compose.material3.Button
+import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -53,8 +53,9 @@ fun ProfileScreen(
     var selectedLanguage by remember { mutableStateOf("es") }
     var apiUrl by remember { mutableStateOf(RetrofitClient.currentBaseUrl) }
     var isCheckingConnection by remember { mutableStateOf(false) }
-    var connectionStatus by remember { mutableStateOf<String?>("Listo para probar conexión") }
+    var connectionStatus by remember { mutableStateOf<String?>("Listo para probar conexión con Django REST API") }
     var isOnline by remember { mutableStateOf<Boolean?>(null) }
+    val chipScrollState = rememberScrollState()
 
     Column(
         modifier = modifier
@@ -139,6 +140,38 @@ fun ProfileScreen(
                     singleLine = true
                 )
 
+                Spacer(modifier = Modifier.height(6.dp))
+
+                // Accesos directos rápidos para cambiar de IP
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(chipScrollState),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    AssistChip(
+                        onClick = {
+                            apiUrl = RetrofitClient.DEFAULT_BASE_URL
+                            RetrofitClient.updateBaseUrl(apiUrl)
+                        },
+                        label = { Text("Wi-Fi PC (192.168.1.147)") }
+                    )
+                    AssistChip(
+                        onClick = {
+                            apiUrl = RetrofitClient.EMULATOR_LOOPBACK_URL
+                            RetrofitClient.updateBaseUrl(apiUrl)
+                        },
+                        label = { Text("Emulador (10.0.2.2)") }
+                    )
+                    AssistChip(
+                        onClick = {
+                            apiUrl = RetrofitClient.LOCALHOST_URL
+                            RetrofitClient.updateBaseUrl(apiUrl)
+                        },
+                        label = { Text("Localhost (127.0.0.1)") }
+                    )
+                }
+
                 Spacer(modifier = Modifier.height(10.dp))
 
                 Row(
@@ -151,14 +184,10 @@ fun ProfileScreen(
                             scope.launch {
                                 isCheckingConnection = true
                                 connectionStatus = "Probando conexión con Django REST API..."
-                                val ok = RetrofitClient.pingBackend()
+                                val (ok, msg) = RetrofitClient.pingBackend()
                                 isOnline = ok
                                 isCheckingConnection = false
-                                connectionStatus = if (ok) {
-                                    "¡Conectado exitosamente con la Web API!"
-                                } else {
-                                    "No se pudo conectar a $apiUrl. Modo local activo."
-                                }
+                                connectionStatus = msg
                             }
                         },
                         enabled = !isCheckingConnection
@@ -197,7 +226,7 @@ fun ProfileScreen(
                     Text(
                         text = connectionStatus ?: "",
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.outline
+                        color = if (isOnline == true) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
                     )
                 }
             }

@@ -13,9 +13,11 @@ import java.util.concurrent.TimeUnit
 
 object RetrofitClient {
 
-    // 10.0.2.2 es el host localhost en el emulador Android.
-    // Para dispositivo físico se puede cambiar por la IP local de la computadora (ej. http://192.168.1.X:8000/api/v1/)
-    const val DEFAULT_BASE_URL = "http://10.0.2.2:8000/api/v1/"
+    // 192.168.1.147 es la IP local de tu PC en la red Wi-Fi, accesible tanto desde emuladores
+    // (con adaptador virtual wlan0) como desde teléfonos físicos conectados a la misma red Wi-Fi.
+    const val DEFAULT_BASE_URL = "http://192.168.1.147:8000/api/v1/"
+    const val EMULATOR_LOOPBACK_URL = "http://10.0.2.2:8000/api/v1/"
+    const val LOCALHOST_URL = "http://127.0.0.1:8000/api/v1/"
 
     @Volatile
     var currentBaseUrl: String = DEFAULT_BASE_URL
@@ -34,9 +36,9 @@ object RetrofitClient {
 
         OkHttpClient.Builder()
             .addInterceptor(logging)
-            .connectTimeout(8, TimeUnit.SECONDS)
-            .readTimeout(8, TimeUnit.SECONDS)
-            .writeTimeout(8, TimeUnit.SECONDS)
+            .connectTimeout(5, TimeUnit.SECONDS)
+            .readTimeout(5, TimeUnit.SECONDS)
+            .writeTimeout(5, TimeUnit.SECONDS)
             .build()
     }
 
@@ -77,14 +79,15 @@ object RetrofitClient {
     }
 
     /**
-     * Prueba si el backend Django responde exitosamente.
+     * Prueba si el backend Django responde exitosamente y retorna el resultado detallado.
      */
-    suspend fun pingBackend(): Boolean {
+    suspend fun pingBackend(): Pair<Boolean, String> {
         return try {
-            productApiService.getProducts()
-            true
+            val products = productApiService.getProducts()
+            Pair(true, "¡Conectado exitosamente con la Web API! Se recibieron ${products.size} productos.")
         } catch (e: Exception) {
-            false
+            val errorMsg = e.localizedMessage ?: e.message ?: e.javaClass.simpleName
+            Pair(false, "No se pudo conectar a $currentBaseUrl ($errorMsg)")
         }
     }
 }
