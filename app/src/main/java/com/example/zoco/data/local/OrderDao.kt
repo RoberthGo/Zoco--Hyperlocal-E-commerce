@@ -14,6 +14,9 @@ interface OrderDao {
     @Query("SELECT * FROM orders ORDER BY createdAt DESC")
     fun getAllOrders(): Flow<List<OrderEntity>>
 
+    @Query("SELECT * FROM orders WHERE isRemote = 0 ORDER BY createdAt DESC")
+    fun getLocalOrders(): Flow<List<OrderEntity>>
+
     @Query("SELECT * FROM orders WHERE id = :id")
     suspend fun getOrderById(id: Long): OrderEntity?
 
@@ -34,4 +37,7 @@ interface OrderDao {
 
     @Query("DELETE FROM orders WHERE id = :id")
     suspend fun deleteOrderById(id: Long): Int
+
+    @Query("DELETE FROM orders WHERE isRemote = 1 OR customerName LIKE '[En Línea]%'")
+    suspend fun deleteRemoteOrders(): Int
 }

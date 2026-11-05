@@ -13,6 +13,9 @@ interface ProductDao {
     @Query("SELECT * FROM products ORDER BY name ASC")
     fun getAllProducts(): Flow<List<ProductEntity>>
 
+    @Query("SELECT * FROM products WHERE isRemote = 0 ORDER BY name ASC")
+    fun getLocalProducts(): Flow<List<ProductEntity>>
+
     @Query("SELECT * FROM products WHERE id = :id")
     suspend fun getProductById(id: Long): ProductEntity?
 
@@ -33,4 +36,7 @@ interface ProductDao {
 
     @Query("DELETE FROM products WHERE id = :id")
     suspend fun deleteProductById(id: Long): Int
+
+    @Query("DELETE FROM products WHERE isRemote = 1 OR name LIKE '[En Línea]%' OR producerName LIKE '%[Web API]%'")
+    suspend fun deleteRemoteProducts(): Int
 }

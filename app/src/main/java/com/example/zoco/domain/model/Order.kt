@@ -10,5 +10,6 @@ data class Order(
     val status: String = "PENDING",
     val isExpress: Boolean = false,
     val itemSummary: String = "",
-    val createdAt: Long = System.currentTimeMillis()
+    val createdAt: Long = System.currentTimeMillis(),
+    val isRemote: Boolean = false
 )

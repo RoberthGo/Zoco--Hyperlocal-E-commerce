@@ -20,6 +20,7 @@ data class CatalogUiState(
     val products: List<Product> = emptyList(),
     val isLoading: Boolean = false,
     val isSyncing: Boolean = false,
+    val isApiActive: Boolean = false,
     val syncMessage: String? = null
 )
 
@@ -31,6 +32,7 @@ class CatalogViewModel(
     private val _selectedCategory = MutableStateFlow(ProductCategory.ALL)
     private val _expressOnly = MutableStateFlow(false)
     private val _isSyncing = MutableStateFlow(false)
+    private val _isApiActive = MutableStateFlow(false)
     private val _syncMessage = MutableStateFlow<String?>(null)
 
     val uiState: StateFlow<CatalogUiState> = combine(
@@ -39,17 +41,28 @@ class CatalogViewModel(
         _selectedCategory,
         _expressOnly,
         _isSyncing,
-        _syncMessage
+        _syncMessage,
+        _isApiActive
     ) { args: Array<Any?> ->
         @Suppress("UNCHECKED_CAST")
-        val products = args[0] as List<Product>
+        val allProducts = args[0] as List<Product>
         val query = args[1] as String
         val category = args[2] as ProductCategory
         val expressOnly = args[3] as Boolean
         val isSyncing = args[4] as Boolean
         val syncMessage = args[5] as? String
+        val isApiActive = args[6] as Boolean
 
-        val filtered = products.filter { product ->
+        // REGLA CRÍTICA: Cuando la API no esté activa, asegurarse de que no se muestren las cosas de la API
+        val availableProducts = if (isApiActive) {
+            allProducts
+        } else {
+            allProducts.filterNot { 
+                it.isRemote || it.name.startsWith("[En Línea]") || it.producerName.contains("[Web API]") 
+            }
+        }
+
+        val filtered = availableProducts.filter { product ->
             val matchesQuery = query.isBlank() || product.name.contains(query, ignoreCase = true) || product.description.contains(query, ignoreCase = true)
             val matchesCategory = category == ProductCategory.ALL || product.category == category
             val matchesExpress = !expressOnly || product.isExpressDelivery
@@ -63,6 +76,7 @@ class CatalogViewModel(
             products = filtered,
             isLoading = false,
             isSyncing = isSyncing,
+            isApiActive = isApiActive,
             syncMessage = syncMessage
         )
     }.stateIn(
@@ -77,8 +91,11 @@ class CatalogViewModel(
             repository.populateInitialDataIfEmpty()
             // Sincronizar catálogo desde la Web API de Django
             val synced = repository.syncProductsFromRemote()
-            if (synced) {
-                _syncMessage.value = "¡Catálogo Web API sincronizado exitosamente!"
+            _isApiActive.value = synced
+            _syncMessage.value = if (synced) {
+                "Modo En Línea: Conectado con Web API."
+            } else {
+                "Modo Local Offline: Web API no activa. Mostrando catálogo local."
             }
         }
     }
@@ -100,11 +117,12 @@ class CatalogViewModel(
             _isSyncing.value = true
             _syncMessage.value = "Conectando con Django REST API..."
             val success = repository.syncProductsFromRemote()
+            _isApiActive.value = success
             _isSyncing.value = false
             _syncMessage.value = if (success) {
-                "¡Catálogo sincronizado exitosamente con la Web API!"
+                "Catálogo Web API sincronizado exitosamente."
             } else {
-                "Web API no disponible. Mostrando datos de Room local."
+                "Web API no activa. Mostrando únicamente catálogo local offline."
             }
         }
     }

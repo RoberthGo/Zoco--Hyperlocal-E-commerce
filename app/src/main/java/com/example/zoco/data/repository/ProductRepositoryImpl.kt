@@ -110,12 +110,18 @@ class ProductRepositoryImpl(
     /**
      * CONEXIÓN WEB API: Método para sincronizar productos remotos hacia la base de datos local.
      * Consulta GET /products en el backend y guarda/actualiza los registros en Room.
+     * Si la Web API no está activa o falla la conexión, elimina los productos remotos
+     * para asegurar que no se muestren cosas de la API.
      */
     override suspend fun syncProductsFromRemote(): Boolean {
         return try {
             val remoteProducts = productApiService.getProducts()
             if (remoteProducts.isNotEmpty()) {
-                val entities = remoteProducts.map { ProductEntity.fromDomain(it.toDomain()) }
+                // Limpiar registros remotos previos para actualizar con la API activa
+                productDao.deleteRemoteProducts()
+                val entities = remoteProducts.map { 
+                    ProductEntity.fromDomain(it.toDomain()).copy(isRemote = true)
+                }
                 productDao.insertProducts(entities)
                 Log.d(TAG, "Sincronización remota completada: ${entities.size} productos descargados.")
                 true
@@ -123,7 +129,8 @@ class ProductRepositoryImpl(
                 false
             }
         } catch (e: Exception) {
-            Log.w(TAG, "Sincronización remota no disponible por ahora: ${e.message}")
+            Log.w(TAG, "Web API no activa (${e.message}). Eliminando productos remotos de Room para mostrar únicamente catálogo local.")
+            productDao.deleteRemoteProducts()
             false
         }
     }
@@ -133,53 +140,58 @@ class ProductRepositoryImpl(
             val initialProducts = listOf(
                 ProductEntity(
                     id = 101,
-                    name = "[📱 Local / Offline] Pan de Pueblo Horneado a la Leña",
+                    name = "[Local] Pan de Pueblo Horneado a la Leña",
                     description = "Elaborado localmente con fermentación tradicional en horno de leña comunitario.",
                     price = 40.0,
                     category = ProductCategory.BAKERY.name,
                     producerName = "Panadería San José [Local Offline]",
                     isExpressDelivery = true,
-                    inStock = true
+                    inStock = true,
+                    isRemote = false
                 ),
                 ProductEntity(
                     id = 102,
-                    name = "[📱 Local / Offline] Miel Silvestre de Monte (500g)",
+                    name = "[Local] Miel Silvestre de Monte (500g)",
                     description = "Miel pura no pasteurizada, conservada en el dispositivo en modo offline.",
                     price = 95.0,
                     category = ProductCategory.PRODUCE.name,
                     producerName = "Apícola Los Sauces [Local Offline]",
                     isExpressDelivery = true,
-                    inStock = true
+                    inStock = true,
+                    isRemote = false
                 ),
                 ProductEntity(
                     id = 103,
-                    name = "[📱 Local / Offline] Queso Fresco Ranchero de Hoja",
+                    name = "[Local] Queso Fresco Ranchero de Hoja",
                     description = "Queso artesanal envuelto en hoja de plátano, 100% natural de establo local.",
                     price = 65.0,
                     category = ProductCategory.DAIRY.name,
                     producerName = "Rancho San Antonio [Local Offline]",
                     isExpressDelivery = false,
-                    inStock = true
+                    inStock = true,
+                    isRemote = false
                 ),
                 ProductEntity(
                     id = 104,
-                    name = "[📱 Local / Offline] Canasta de Vara Tejida Tradicional",
+                    name = "[Local] Canasta de Vara Tejida Tradicional",
                     description = "Artesanía de vara de sauz tejida a mano disponible en catálogo local.",
                     price = 110.0,
                     category = ProductCategory.CRAFTS.name,
                     producerName = "Artesanías El Roble [Local Offline]",
                     isExpressDelivery = false,
-                    inStock = true
+                    inStock = true,
+                    isRemote = false
                 ),
                 ProductEntity(
                     id = 105,
-                    name = "[📱 Local / Offline] Naranjas Dulces de Huerto (2 kg)",
+                    name = "[Local] Naranjas Dulces de Huerto (2 kg)",
                     description = "Cosecha fresca local disponible sin requerir conexión a internet.",
                     price = 35.0,
                     category = ProductCategory.PRODUCE.name,
                     producerName = "Huerta La Cañada [Local Offline]",
                     isExpressDelivery = true,
-                    inStock = true
+                    inStock = true,
+                    isRemote = false
                 )
             )
             productDao.insertProducts(initialProducts)

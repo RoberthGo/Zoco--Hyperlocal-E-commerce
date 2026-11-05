@@ -9,6 +9,7 @@ import com.example.zoco.domain.repository.OrderRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -21,6 +22,7 @@ data class CartUiState(
     val isExpress: Boolean = false,
     val orderCompletedMessage: String? = null,
     val isSubmitting: Boolean = false,
+    val isApiActive: Boolean = false,
     val recentOrders: List<Order> = emptyList()
 ) {
     val totalAmount: Double
@@ -33,16 +35,27 @@ class CartViewModel(
 
     private val _uiState = MutableStateFlow(CartUiState())
     val uiState: StateFlow<CartUiState> = _uiState.asStateFlow()
+    private val _isApiActive = MutableStateFlow(false)
 
     init {
         orderRepository?.let { repo ->
             viewModelScope.launch {
                 repo.populateInitialOrdersIfEmpty()
-                repo.syncOrdersFromRemote()
+                val success = repo.syncOrdersFromRemote()
+                _isApiActive.value = success
             }
             viewModelScope.launch {
-                repo.getOrders().collect { orders ->
-                    _uiState.update { it.copy(recentOrders = orders) }
+                combine(repo.getOrders(), _isApiActive) { orders, isApiActive ->
+                    // REGLA CRÍTICA: Cuando la API no esté activa, no mostrar pedidos de la API
+                    if (isApiActive) {
+                        orders
+                    } else {
+                        orders.filterNot { 
+                            it.isRemote || it.customerName.startsWith("[En Línea]") || it.customerName.contains("(Web API)") 
+                        }
+                    }
+                }.collect { visibleOrders ->
+                    _uiState.update { it.copy(recentOrders = visibleOrders, isApiActive = _isApiActive.value) }
                 }
             }
         }
@@ -51,7 +64,9 @@ class CartViewModel(
     fun syncOrdersFromWeb() {
         orderRepository?.let { repo ->
             viewModelScope.launch {
-                repo.syncOrdersFromRemote()
+                val success = repo.syncOrdersFromRemote()
+                _isApiActive.value = success
+                _uiState.update { it.copy(isApiActive = success) }
             }
         }
     }

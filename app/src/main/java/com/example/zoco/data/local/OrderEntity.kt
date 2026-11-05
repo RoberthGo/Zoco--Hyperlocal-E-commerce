@@ -16,7 +16,8 @@ data class OrderEntity(
     val status: String = "PENDING",
     val isExpress: Boolean = false,
     val itemSummary: String = "",
-    val createdAt: Long = System.currentTimeMillis()
+    val createdAt: Long = System.currentTimeMillis(),
+    val isRemote: Boolean = false
 ) {
     fun toDomain(): Order {
         return Order(
@@ -29,7 +30,8 @@ data class OrderEntity(
             status = status,
             isExpress = isExpress,
             itemSummary = itemSummary,
-            createdAt = createdAt
+            createdAt = createdAt,
+            isRemote = isRemote
         )
     }
 
@@ -45,7 +47,8 @@ data class OrderEntity(
                 status = order.status,
                 isExpress = order.isExpress,
                 itemSummary = order.itemSummary,
-                createdAt = order.createdAt
+                createdAt = order.createdAt,
+                isRemote = order.isRemote
             )
         }
     }

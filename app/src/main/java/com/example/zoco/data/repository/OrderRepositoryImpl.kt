@@ -73,6 +73,7 @@ class OrderRepositoryImpl(
         return try {
             val remoteOrders = orderApiService.getOrders()
             if (remoteOrders.isNotEmpty()) {
+                orderDao.deleteRemoteOrders()
                 val entities = remoteOrders.map { dto ->
                     OrderEntity(
                         id = dto.id,
@@ -83,7 +84,8 @@ class OrderRepositoryImpl(
                         totalAmount = dto.totalAmount,
                         status = dto.status,
                         isExpress = dto.isExpress,
-                        itemSummary = dto.items.joinToString(", ") { "${it.quantity}x ${it.productName}" }
+                        itemSummary = dto.items.joinToString(", ") { "${it.quantity}x ${it.productName}" },
+                        isRemote = true
                     )
                 }
                 orderDao.insertOrders(entities)
@@ -93,7 +95,8 @@ class OrderRepositoryImpl(
                 false
             }
         } catch (e: Exception) {
-            Log.w(TAG, "Error al sincronizar pedidos remotos: ${e.message}")
+            Log.w(TAG, "Web API no activa (${e.message}). Eliminando pedidos remotos de Room para mostrar únicamente pedidos locales.")
+            orderDao.deleteRemoteOrders()
             false
         }
     }
@@ -103,27 +106,29 @@ class OrderRepositoryImpl(
             val initialOrders = listOf(
                 OrderEntity(
                     id = 101,
-                    customerName = "[📱 Local / Offline] Juan Comprador (Room SQLite)",
+                    customerName = "[Local] Juan Comprador (Room SQLite)",
                     customerPhone = "4451122334",
                     deliveryAddress = "Calle Morelos #15, Centro Local",
                     scheduledTime = "15:00",
                     totalAmount = 80.0,
                     status = "LOCAL_STORED",
                     isExpress = false,
-                    itemSummary = "2x [📱 Local / Offline] Pan de Pueblo Horneado a la Leña",
-                    createdAt = System.currentTimeMillis() - 7200000
+                    itemSummary = "2x [Local] Pan de Pueblo Horneado a la Leña",
+                    createdAt = System.currentTimeMillis() - 7200000,
+                    isRemote = false
                 ),
                 OrderEntity(
                     id = 102,
-                    customerName = "[📱 Local / Offline] María Local (Room SQLite)",
+                    customerName = "[Local] María Local (Room SQLite)",
                     customerPhone = "4459988776",
                     deliveryAddress = "Barrio San Juan #4, Localidad",
                     scheduledTime = "17:30",
                     totalAmount = 95.0,
                     status = "LOCAL_STORED",
                     isExpress = true,
-                    itemSummary = "1x [📱 Local / Offline] Miel Silvestre de Monte (500g)",
-                    createdAt = System.currentTimeMillis() - 3600000
+                    itemSummary = "1x [Local] Miel Silvestre de Monte (500g)",
+                    createdAt = System.currentTimeMillis() - 3600000,
+                    isRemote = false
                 )
             )
             orderDao.insertOrders(initialOrders)

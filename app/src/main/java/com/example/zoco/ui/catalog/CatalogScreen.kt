@@ -284,14 +284,14 @@ fun ProductItemCard(
         )
     ) {
         Column(modifier = Modifier.padding(14.dp)) {
-            val isOnline = product.name.contains("En Línea") || product.producerName.contains("Web API")
+            val isOnline = product.isRemote || product.name.contains("[En Línea]") || product.producerName.contains("[Web API]")
             Surface(
                 shape = RoundedCornerShape(6.dp),
                 color = if (isOnline) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.secondaryContainer,
                 modifier = Modifier.padding(bottom = 6.dp)
             ) {
                 Text(
-                    text = if (isOnline) "🌐 En Línea (Web API)" else "📱 Local (Room SQLite)",
+                    text = if (isOnline) "En Línea (Web API)" else "Local (Room SQLite)",
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Bold,
                     color = if (isOnline) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSecondaryContainer,

@@ -372,7 +372,7 @@ fun CartItemRow(
 
 @Composable
 fun RecentOrderCard(order: Order) {
-    val isOnline = order.customerName.contains("En Línea") || order.customerName.contains("Web API") || order.itemSummary.contains("En Línea")
+    val isOnline = order.isRemote || order.customerName.contains("[En Línea]") || order.customerName.contains("Web API")
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
@@ -395,7 +395,7 @@ fun RecentOrderCard(order: Order) {
                         color = if (isOnline) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.secondaryContainer
                     ) {
                         Text(
-                            text = if (isOnline) "🌐 Web API" else "📱 Room Local",
+                            text = if (isOnline) "Web API" else "Room Local",
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
                             color = if (isOnline) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSecondaryContainer,
