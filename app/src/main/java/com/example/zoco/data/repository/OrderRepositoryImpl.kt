@@ -15,8 +15,11 @@ import kotlinx.coroutines.flow.map
 
 class OrderRepositoryImpl(
     private val orderDao: OrderDao,
-    private val orderApiService: OrderApiService = RetrofitClient.orderApiService
+    private val customApiService: OrderApiService? = null
 ) : OrderRepository {
+
+    private val orderApiService: OrderApiService
+        get() = customApiService ?: RetrofitClient.orderApiService
 
     companion object {
         private const val TAG = "OrderRepository"

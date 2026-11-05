@@ -20,8 +20,11 @@ import kotlinx.coroutines.flow.map
  */
 class ProductRepositoryImpl(
     private val productDao: ProductDao,
-    private val productApiService: ProductApiService = RetrofitClient.productApiService
+    private val customApiService: ProductApiService? = null
 ) : ProductRepository {
+
+    private val productApiService: ProductApiService
+        get() = customApiService ?: RetrofitClient.productApiService
 
     companion object {
         private const val TAG = "ProductRepository"
@@ -112,25 +115,48 @@ class ProductRepositoryImpl(
      * Consulta GET /products en el backend y guarda/actualiza los registros en Room.
      * Si la Web API no está activa o falla la conexión, elimina los productos remotos
      * para asegurar que no se muestren cosas de la API.
+     * Incluye detección y fallback automático entre IPs candidatas (Wi-Fi, Localhost, Emulador).
      */
     override suspend fun syncProductsFromRemote(): Boolean {
+        // 1. Probar con la URL actualmente configurada
+        if (executeSync()) {
+            return true
+        }
+
+        // 2. Si falló la conexión (ej. cambio de red Wi-Fi o IP), probar candidatos automáticamente
+        if (customApiService == null) {
+            for (candidate in RetrofitClient.CANDIDATE_URLS) {
+                if (candidate != RetrofitClient.currentBaseUrl) {
+                    RetrofitClient.updateBaseUrl(candidate)
+                    if (executeSync()) {
+                        Log.i(TAG, "Reconexión automática exitosa con URL candidata: $candidate")
+                        return true
+                    }
+                }
+            }
+        }
+
+        // 3. Si ninguna respondió, el servidor está realmente apagado o inaccesible
+        Log.w(TAG, "Web API no activa en ninguna URL candidata. Eliminando productos remotos de Room para mostrar únicamente catálogo local.")
+        productDao.deleteRemoteProducts()
+        return false
+    }
+
+    private suspend fun executeSync(): Boolean {
         return try {
             val remoteProducts = productApiService.getProducts()
             if (remoteProducts.isNotEmpty()) {
-                // Limpiar registros remotos previos para actualizar con la API activa
                 productDao.deleteRemoteProducts()
                 val entities = remoteProducts.map { 
                     ProductEntity.fromDomain(it.toDomain()).copy(isRemote = true)
                 }
                 productDao.insertProducts(entities)
-                Log.d(TAG, "Sincronización remota completada: ${entities.size} productos descargados.")
+                Log.d(TAG, "Sincronización remota completada: ${entities.size} productos descargados desde ${RetrofitClient.currentBaseUrl}")
                 true
             } else {
                 false
             }
         } catch (e: Exception) {
-            Log.w(TAG, "Web API no activa (${e.message}). Eliminando productos remotos de Room para mostrar únicamente catálogo local.")
-            productDao.deleteRemoteProducts()
             false
         }
     }

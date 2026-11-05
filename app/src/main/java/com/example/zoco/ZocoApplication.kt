@@ -16,15 +16,13 @@ class ZocoApplication : Application() {
 
     val productRepository: ProductRepository by lazy {
         ProductRepositoryImpl(
-            productDao = database.productDao(),
-            productApiService = RetrofitClient.productApiService
+            productDao = database.productDao()
         )
     }
 
     val orderRepository: OrderRepository by lazy {
         OrderRepositoryImpl(
-            orderDao = database.orderDao(),
-            orderApiService = RetrofitClient.orderApiService
+            orderDao = database.orderDao()
         )
     }
 

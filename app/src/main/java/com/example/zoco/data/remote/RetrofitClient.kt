@@ -13,11 +13,20 @@ import java.util.concurrent.TimeUnit
 
 object RetrofitClient {
 
-    // 192.168.1.147 es la IP local de tu PC en la red Wi-Fi, accesible tanto desde emuladores
-    // (con adaptador virtual wlan0) como desde teléfonos físicos conectados a la misma red Wi-Fi.
-    const val DEFAULT_BASE_URL = "http://192.168.1.147:8000/api/v1/"
-    const val EMULATOR_LOOPBACK_URL = "http://10.0.2.2:8000/api/v1/"
+    // IP actual del host en la red Wi-Fi
+    const val CURRENT_WIFI_URL = "http://192.168.20.180:8000/api/v1/"
     const val LOCALHOST_URL = "http://127.0.0.1:8000/api/v1/"
+    const val EMULATOR_LOOPBACK_URL = "http://10.0.2.2:8000/api/v1/"
+    const val PREVIOUS_WIFI_URL = "http://192.168.1.147:8000/api/v1/"
+
+    const val DEFAULT_BASE_URL = CURRENT_WIFI_URL
+
+    val CANDIDATE_URLS = listOf(
+        CURRENT_WIFI_URL,
+        LOCALHOST_URL,
+        EMULATOR_LOOPBACK_URL,
+        PREVIOUS_WIFI_URL
+    )
 
     @Volatile
     var currentBaseUrl: String = DEFAULT_BASE_URL
@@ -36,9 +45,9 @@ object RetrofitClient {
 
         OkHttpClient.Builder()
             .addInterceptor(logging)
-            .connectTimeout(5, TimeUnit.SECONDS)
-            .readTimeout(5, TimeUnit.SECONDS)
-            .writeTimeout(5, TimeUnit.SECONDS)
+            .connectTimeout(3, TimeUnit.SECONDS)
+            .readTimeout(3, TimeUnit.SECONDS)
+            .writeTimeout(3, TimeUnit.SECONDS)
             .build()
     }
 

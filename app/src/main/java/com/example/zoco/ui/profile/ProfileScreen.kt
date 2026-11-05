@@ -151,10 +151,17 @@ fun ProfileScreen(
                 ) {
                     AssistChip(
                         onClick = {
-                            apiUrl = RetrofitClient.DEFAULT_BASE_URL
+                            apiUrl = RetrofitClient.CURRENT_WIFI_URL
                             RetrofitClient.updateBaseUrl(apiUrl)
                         },
-                        label = { Text("Wi-Fi PC (192.168.1.147)") }
+                        label = { Text("Wi-Fi PC (192.168.20.180)") }
+                    )
+                    AssistChip(
+                        onClick = {
+                            apiUrl = RetrofitClient.LOCALHOST_URL
+                            RetrofitClient.updateBaseUrl(apiUrl)
+                        },
+                        label = { Text("Localhost (127.0.0.1)") }
                     )
                     AssistChip(
                         onClick = {
@@ -165,10 +172,10 @@ fun ProfileScreen(
                     )
                     AssistChip(
                         onClick = {
-                            apiUrl = RetrofitClient.LOCALHOST_URL
+                            apiUrl = RetrofitClient.PREVIOUS_WIFI_URL
                             RetrofitClient.updateBaseUrl(apiUrl)
                         },
-                        label = { Text("Localhost (127.0.0.1)") }
+                        label = { Text("Wi-Fi Casa (192.168.1.147)") }
                     )
                 }
 
