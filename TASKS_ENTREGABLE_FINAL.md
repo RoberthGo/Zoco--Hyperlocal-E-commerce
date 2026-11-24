@@ -58,16 +58,17 @@
 
 ---
 
-### 📱 TASK-FINAL-04: Adaptabilidad UX en pantallas grandes ($\ge 600\text{dp}$) para Carrito y Vendedor
+### 📱 TASK-FINAL-04: Adaptabilidad UX en pantallas grandes ($\ge 600\text{dp}$) para Carrito y Vendedor [COMPLETADA]
 * **Responsable:** `ui-adaptive`
+* **Estado:** ✅ Completada y verificada
 * **Objetivo:** Brindar una experiencia de usuario (UX) rica y diferenciada en tablets, pantallas plegables o emuladores anchos.
 * **Acciones:**
   1. **En `CartScreen`:**
-     * Móvil ($< 600\text{dp}$): vista vertical en 1 columna.
-     * Pantalla grande ($\ge 600\text{dp}$): vista a dos columnas usando `Row` + `BoxWithConstraints` (Columna izquierda: lista de productos del carrito y pedidos recientes; Columna derecha: tarjeta fija de totalizador, selector de horario y formulario de checkout).
+     * Móvil ($< 600\text{dp}$): vista vertical en 1 columna optimizada.
+     * Pantalla grande ($\ge 600\text{dp}$): vista dividida a 2 columnas usando `Row` + `BoxWithConstraints` (Columna izquierda: lista de productos del carrito y pedidos recientes; Columna derecha: formulario de entrega `DeliveryInfoCard` y totalizador `OrderTotalCard`).
   2. **En `SellerScreen`:**
      * Móvil ($< 600\text{dp}$): formulario vertical estándar.
-     * Pantalla grande ($\ge 600\text{dp}$): diseño en dos paneles (Panel izquierdo: campos de texto del formulario; Panel derecho: vista previa interactiva en tiempo real de cómo lucirá la tarjeta del producto en el catálogo).
+     * Pantalla grande ($\ge 600\text{dp}$): diseño en dos paneles (Panel izquierdo: formulario de captura de producto; Panel derecho: vista previa interactiva en tiempo real con `ProductItemCard` reutilizando el componente visual del catálogo).
 
 ---
 

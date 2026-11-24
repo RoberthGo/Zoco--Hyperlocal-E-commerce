@@ -2,27 +2,28 @@ package com.example.zoco.ui.cart
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.filled.CloudSync
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.LocalShipping
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -34,6 +35,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TimePicker
 import androidx.compose.material3.rememberTimePickerState
@@ -69,210 +71,234 @@ fun CartScreen(
 ) {
     var showTimePickerDialog by remember { mutableStateOf(false) }
 
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(16.dp)
-    ) {
-        Text(
-            text = stringResource(R.string.cart_title),
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Bold
-        )
+    BoxWithConstraints(modifier = modifier.fillMaxSize()) {
+        val isWide = maxWidth >= 600.dp
 
-        Spacer(modifier = Modifier.height(10.dp))
-
-        if (uiState.orderCompletedMessage != null) {
-            Card(
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 8.dp)
-            ) {
+        if (isWide) {
+            // Diseño adaptativo para pantallas grandes (>= 600dp: Tablets / Plegables / Paisaje)
+            if (uiState.items.isNotEmpty()) {
                 Row(
-                    modifier = Modifier.padding(14.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(20.dp)
                 ) {
-                    Icon(
-                        Icons.Default.CheckCircle,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onPrimaryContainer
-                    )
-                    Spacer(modifier = Modifier.size(10.dp))
-                    Text(
-                        text = uiState.orderCompletedMessage,
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer
-                    )
-                }
-            }
-        }
+                    // Columna Izquierda: Lista de productos en el carrito
+                    Column(
+                        modifier = Modifier.weight(1.1f)
+                    ) {
+                        Text(
+                            text = stringResource(R.string.cart_title),
+                            style = MaterialTheme.typography.headlineSmall,
+                            fontWeight = FontWeight.Bold
+                        )
 
-        if (uiState.items.isEmpty()) {
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth(),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(
-                        text = stringResource(R.string.cart_empty),
-                        style = MaterialTheme.typography.bodyLarge
-                    )
-                    if (uiState.recentOrders.isNotEmpty()) {
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        if (uiState.orderCompletedMessage != null) {
+                            OrderCompletedBanner(uiState.orderCompletedMessage)
+                            Spacer(modifier = Modifier.height(8.dp))
+                        }
+
+                        LazyColumn(
+                            modifier = Modifier.fillMaxSize(),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            Text(
-                                text = stringResource(R.string.recent_orders_title, uiState.recentOrders.size),
-                                style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.Bold
-                            )
-                            IconButton(onClick = onSyncOrders, modifier = Modifier.size(32.dp)) {
-                                Icon(
-                                    Icons.Default.CloudSync,
-                                    contentDescription = stringResource(R.string.sync_orders_description),
-                                    tint = MaterialTheme.colorScheme.primary
+                            items(uiState.items, key = { it.product.id }) { item ->
+                                CartItemRow(
+                                    item = item,
+                                    onRemove = { onRemoveProduct(item.product) }
                                 )
+                            }
+                        }
+                    }
+
+                    // Columna Derecha: Formulario de entrega y totalizador fijo
+                    Column(
+                        modifier = Modifier
+                            .weight(0.9f)
+                            .verticalScroll(rememberScrollState()),
+                        verticalArrangement = Arrangement.spacedBy(14.dp)
+                    ) {
+                        Text(
+                            text = stringResource(R.string.cart_summary_title),
+                            style = MaterialTheme.typography.headlineSmall,
+                            fontWeight = FontWeight.Bold
+                        )
+
+                        DeliveryInfoCard(
+                            uiState = uiState,
+                            onNameChange = onNameChange,
+                            onAddressChange = onAddressChange,
+                            onExpressChange = onExpressChange,
+                            onOpenTimePicker = { showTimePickerDialog = true }
+                        )
+
+                        OrderTotalCard(
+                            uiState = uiState,
+                            onConfirmOrder = onConfirmOrder
+                        )
+                    }
+                }
+            } else {
+                // Pantalla grande cuando el carrito está vacío
+                Row(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(20.dp)
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .weight(0.8f)
+                            .fillMaxHeight(),
+                        verticalArrangement = Arrangement.Center,
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = stringResource(R.string.cart_title),
+                            style = MaterialTheme.typography.headlineSmall,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text(
+                            text = stringResource(R.string.cart_empty),
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                    }
+
+                    if (uiState.recentOrders.isNotEmpty()) {
+                        Column(
+                            modifier = Modifier.weight(1.2f)
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = stringResource(R.string.recent_orders_title, uiState.recentOrders.size),
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                IconButton(onClick = onSyncOrders, modifier = Modifier.size(32.dp)) {
+                                    Icon(
+                                        Icons.Default.CloudSync,
+                                        contentDescription = stringResource(R.string.sync_orders_description),
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                            }
+                            Spacer(modifier = Modifier.height(8.dp))
+                            LazyColumn(
+                                modifier = Modifier.fillMaxSize(),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                items(uiState.recentOrders, key = { it.id }) { order ->
+                                    RecentOrderCard(order = order)
+                                }
                             }
                         }
                     }
                 }
             }
         } else {
-            LazyColumn(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+            // Factor de forma móvil estándar (< 600dp: Columna única)
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp)
             ) {
-                items(uiState.items, key = { it.product.id }) { item ->
-                    CartItemRow(
-                        item = item,
-                        onRemove = { onRemoveProduct(item.product) }
-                    )
+                Text(
+                    text = stringResource(R.string.cart_title),
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold
+                )
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                if (uiState.orderCompletedMessage != null) {
+                    OrderCompletedBanner(uiState.orderCompletedMessage)
+                    Spacer(modifier = Modifier.height(8.dp))
                 }
 
-                item {
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                if (uiState.items.isEmpty()) {
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxWidth(),
+                        contentAlignment = Alignment.Center
                     ) {
-                        Column(modifier = Modifier.padding(14.dp)) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Text(
-                                text = stringResource(R.string.delivery_info_title),
-                                style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.Bold
+                                text = stringResource(R.string.cart_empty),
+                                style = MaterialTheme.typography.bodyLarge
                             )
-                            Spacer(modifier = Modifier.height(8.dp))
-                            OutlinedTextField(
-                                value = uiState.customerName,
-                                onValueChange = onNameChange,
-                                label = { Text(stringResource(R.string.buyer_name_label)) },
-                                modifier = Modifier.fillMaxWidth(),
-                                singleLine = true
-                            )
-                            Spacer(modifier = Modifier.height(6.dp))
-                            OutlinedTextField(
-                                value = uiState.deliveryAddress,
-                                onValueChange = onAddressChange,
-                                label = { Text(stringResource(R.string.delivery_address_label)) },
-                                modifier = Modifier.fillMaxWidth(),
-                                singleLine = true
-                            )
-                            Spacer(modifier = Modifier.height(6.dp))
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Checkbox(
-                                        checked = uiState.isExpress,
-                                        onCheckedChange = onExpressChange
+                            if (uiState.recentOrders.isNotEmpty()) {
+                                Spacer(modifier = Modifier.height(16.dp))
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = stringResource(R.string.recent_orders_title, uiState.recentOrders.size),
+                                        style = MaterialTheme.typography.titleSmall,
+                                        fontWeight = FontWeight.Bold
                                     )
-                                    Text(stringResource(R.string.express_delivery_checkbox))
-                                }
-
-                                OutlinedButton(onClick = { showTimePickerDialog = true }) {
-                                    Icon(
-                                        Icons.Default.AccessTime,
-                                        contentDescription = null,
-                                        modifier = Modifier.padding(end = 4.dp)
-                                    )
-                                    Text(uiState.scheduledDeliveryTime)
+                                    IconButton(onClick = onSyncOrders, modifier = Modifier.size(32.dp)) {
+                                        Icon(
+                                            Icons.Default.CloudSync,
+                                            contentDescription = stringResource(R.string.sync_orders_description),
+                                            tint = MaterialTheme.colorScheme.primary
+                                        )
+                                    }
                                 }
                             }
                         }
                     }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(10.dp))
-
-            // Total y botón de confirmación transaccional
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
-            ) {
-                Column(modifier = Modifier.padding(14.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+                } else {
+                    LazyColumn(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Text(
-                            text = stringResource(R.string.cart_total_label),
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer
-                        )
-                        Text(
-                            text = "\$${"%.2f".format(uiState.totalAmount)}",
-                            style = MaterialTheme.typography.headlineSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer
-                        )
+                        items(uiState.items, key = { it.product.id }) { item ->
+                            CartItemRow(
+                                item = item,
+                                onRemove = { onRemoveProduct(item.product) }
+                            )
+                        }
+
+                        item {
+                            Spacer(modifier = Modifier.height(8.dp))
+                            DeliveryInfoCard(
+                                uiState = uiState,
+                                onNameChange = onNameChange,
+                                onAddressChange = onAddressChange,
+                                onExpressChange = onExpressChange,
+                                onOpenTimePicker = { showTimePickerDialog = true }
+                            )
+                        }
                     }
 
                     Spacer(modifier = Modifier.height(10.dp))
 
-                    Button(
-                        onClick = onConfirmOrder,
-                        enabled = !uiState.isSubmitting,
-                        modifier = Modifier.fillMaxWidth()
+                    OrderTotalCard(
+                        uiState = uiState,
+                        onConfirmOrder = onConfirmOrder
+                    )
+                }
+
+                // Historial de pedidos recientes en móvil
+                if (uiState.recentOrders.isNotEmpty() && uiState.items.isEmpty()) {
+                    LazyColumn(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        if (uiState.isSubmitting) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(20.dp),
-                                color = MaterialTheme.colorScheme.onPrimary,
-                                strokeWidth = 2.dp
-                            )
-                        } else {
-                            Icon(
-                                Icons.Default.LocalShipping,
-                                contentDescription = null,
-                                modifier = Modifier.padding(end = 6.dp)
-                            )
-                            Text(stringResource(R.string.confirm_order_button))
+                        items(uiState.recentOrders, key = { it.id }) { order ->
+                            RecentOrderCard(order = order)
                         }
                     }
-                }
-            }
-        }
-
-        // Historial de pedidos recientes desde SQLite Room
-        if (uiState.recentOrders.isNotEmpty() && uiState.items.isEmpty()) {
-            LazyColumn(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                items(uiState.recentOrders, key = { it.id }) { order ->
-                    RecentOrderCard(order = order)
                 }
             }
         }
@@ -315,6 +341,150 @@ fun CartScreen(
                             Text(stringResource(R.string.dialog_accept))
                         }
                     }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun OrderCompletedBanner(message: String) {
+    Card(
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp)
+    ) {
+        Row(
+            modifier = Modifier.padding(14.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                Icons.Default.CheckCircle,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onPrimaryContainer
+            )
+            Spacer(modifier = Modifier.size(10.dp))
+            Text(
+                text = message,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onPrimaryContainer
+            )
+        }
+    }
+}
+
+@Composable
+private fun DeliveryInfoCard(
+    uiState: CartUiState,
+    onNameChange: (String) -> Unit,
+    onAddressChange: (String) -> Unit,
+    onExpressChange: (Boolean) -> Unit,
+    onOpenTimePicker: () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+    ) {
+        Column(modifier = Modifier.padding(14.dp)) {
+            Text(
+                text = stringResource(R.string.delivery_info_title),
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            OutlinedTextField(
+                value = uiState.customerName,
+                onValueChange = onNameChange,
+                label = { Text(stringResource(R.string.buyer_name_label)) },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
+            )
+            Spacer(modifier = Modifier.height(6.dp))
+            OutlinedTextField(
+                value = uiState.deliveryAddress,
+                onValueChange = onAddressChange,
+                label = { Text(stringResource(R.string.delivery_address_label)) },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
+            )
+            Spacer(modifier = Modifier.height(6.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Checkbox(
+                        checked = uiState.isExpress,
+                        onCheckedChange = onExpressChange
+                    )
+                    Text(stringResource(R.string.express_delivery_checkbox))
+                }
+
+                OutlinedButton(onClick = onOpenTimePicker) {
+                    Icon(
+                        Icons.Default.AccessTime,
+                        contentDescription = null,
+                        modifier = Modifier.padding(end = 4.dp)
+                    )
+                    Text(uiState.scheduledDeliveryTime)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun OrderTotalCard(
+    uiState: CartUiState,
+    onConfirmOrder: () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
+    ) {
+        Column(modifier = Modifier.padding(14.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = stringResource(R.string.cart_total_label),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+                Text(
+                    text = "\$${"%.2f".format(uiState.totalAmount)}",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            Button(
+                onClick = onConfirmOrder,
+                enabled = !uiState.isSubmitting,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                if (uiState.isSubmitting) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    Icon(
+                        Icons.Default.LocalShipping,
+                        contentDescription = null,
+                        modifier = Modifier.padding(end = 6.dp)
+                    )
+                    Text(stringResource(R.string.confirm_order_button))
                 }
             }
         }

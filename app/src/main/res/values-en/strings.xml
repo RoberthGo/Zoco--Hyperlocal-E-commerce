@@ -64,6 +64,12 @@
     <string name="save_product_button">Save to Catalog</string>
     <string name="product_saved_success">Product registered successfully</string>
     <string name="validation_required">This field is required</string>
+    <string name="seller_preview_title">Catalog Preview</string>
+    <string name="seller_preview_subtitle">This is how your product will look in real time:</string>
+    <string name="placeholder_product_name">Product name</string>
+    <string name="placeholder_producer_name">Your name or business</string>
+    <string name="placeholder_description">Detailed description of the product you offer...</string>
+    <string name="cart_summary_title">Order Summary</string>
 
     <!-- Profile Screen -->
     <string name="profile_title">User Profile</string>

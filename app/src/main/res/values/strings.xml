@@ -64,6 +64,12 @@
     <string name="save_product_button">Guardar en Catálogo</string>
     <string name="product_saved_success">Producto registrado correctamente</string>
     <string name="validation_required">Este campo es obligatorio</string>
+    <string name="seller_preview_title">Vista previa en catálogo</string>
+    <string name="seller_preview_subtitle">Así se verá tu producto publicado en tiempo real:</string>
+    <string name="placeholder_product_name">Nombre de tu producto</string>
+    <string name="placeholder_producer_name">Tu nombre o negocio</string>
+    <string name="placeholder_description">Descripción detallada del producto que ofreces...</string>
+    <string name="cart_summary_title">Resumen de Compra</string>
 
     <!-- Profile Screen -->
     <string name="profile_title">Perfil de Usuario</string>
