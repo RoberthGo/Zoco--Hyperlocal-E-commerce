@@ -18,7 +18,7 @@ data class ProductEntity(
     val inStock: Boolean,
     val isRemote: Boolean = false
 ) {
-    fun toDomain(): Product {
+    fun toDomain(imageUrl: String? = null): Product {
         val cat = runCatching { ProductCategory.valueOf(category) }.getOrDefault(ProductCategory.ALL)
         return Product(
             id = id,
@@ -29,7 +29,8 @@ data class ProductEntity(
             producerName = producerName,
             isExpressDelivery = isExpressDelivery,
             inStock = inStock,
-            isRemote = isRemote
+            isRemote = isRemote,
+            imageUrl = imageUrl
         )
     }
 

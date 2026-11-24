@@ -16,7 +16,8 @@ class ZocoApplication : Application() {
 
     val productRepository: ProductRepository by lazy {
         ProductRepositoryImpl(
-            productDao = database.productDao()
+            productDao = database.productDao(),
+            mediaDao = database.mediaDao()
         )
     }
 

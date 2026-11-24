@@ -9,6 +9,8 @@ interface ProductRepository {
     fun getProductsFiltered(query: String, category: ProductCategory, expressOnly: Boolean): Flow<List<Product>>
     suspend fun getProductById(id: Long): Product?
     suspend fun insertProduct(product: Product): Long
+    suspend fun insertProductWithMedia(product: Product, mediaUri: String?): Long
+    suspend fun getMediaForProduct(productId: Long): List<String>
     suspend fun updateProduct(product: Product): Boolean
     suspend fun deleteProduct(product: Product): Boolean
     suspend fun deleteProductById(id: Long): Boolean

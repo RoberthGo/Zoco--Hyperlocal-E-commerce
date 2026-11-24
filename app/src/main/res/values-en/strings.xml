@@ -70,6 +70,9 @@
     <string name="placeholder_producer_name">Your name or business</string>
     <string name="placeholder_description">Detailed description of the product you offer...</string>
     <string name="cart_summary_title">Order Summary</string>
+    <string name="btn_select_image">Select Photo / Media</string>
+    <string name="btn_change_image">Change Photo</string>
+    <string name="btn_remove_image">Remove selected photo</string>
 
     <!-- Profile Screen -->
     <string name="profile_title">User Profile</string>

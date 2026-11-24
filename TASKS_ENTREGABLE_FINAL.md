@@ -72,13 +72,14 @@
 
 ---
 
-### 📷 TASK-FINAL-05: Integración de foto/multimedia en alta de productos
+### 📷 TASK-FINAL-05: Integración de foto/multimedia en alta de productos [COMPLETADA]
 * **Responsable:** `media-notif`
+* **Estado:** ✅ Completada y verificada
 * **Objetivo:** Cerrar el ciclo funcional del módulo Multimedia (`MediaEntity` / `MediaDao`).
 * **Acciones:**
-  1. Añadir botón/selector de imagen en `SellerScreen` (usando `rememberLauncherForActivityResult` con `ActivityResultContracts.GetContent` o selector de catálogo de fotos/íconos).
-  2. Guardar la URI de la imagen seleccionada en la tabla `media` a través de `MediaDao`.
-  3. Renderizar la imagen con Coil (`AsyncImage`) o thumbnail en `ProductItemCard` si existe un registro multimedia vinculado al producto.
+  1. Añadir botón/selector de imagen en `SellerScreen` usando `rememberLauncherForActivityResult` con `ActivityResultContracts.GetContent()`.
+  2. Guardar la URI de la imagen seleccionada en la tabla `media` a través de `MediaDao.insertMedia()` desde `ProductRepositoryImpl`.
+  3. Renderizar la imagen con Coil (`AsyncImage`) en `ProductItemCard` tanto en el catálogo como en la vista previa del vendedor.
 
 ---
 

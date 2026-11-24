@@ -17,5 +17,6 @@ data class Product(
     val producerName: String,
     val isExpressDelivery: Boolean = false,
     val inStock: Boolean = true,
-    val isRemote: Boolean = false
+    val isRemote: Boolean = false,
+    val imageUrl: String? = null
 )

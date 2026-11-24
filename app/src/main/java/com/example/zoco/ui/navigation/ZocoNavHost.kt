@@ -74,6 +74,7 @@ fun ZocoNavHost(
                 onCategoryChange = sellerViewModel::onCategoryChanged,
                 onProducerNameChange = sellerViewModel::onProducerNameChanged,
                 onExpressChange = sellerViewModel::onExpressChanged,
+                onImageUriChange = sellerViewModel::onImageUriChanged,
                 onSaveProduct = sellerViewModel::saveProduct
             )
         }

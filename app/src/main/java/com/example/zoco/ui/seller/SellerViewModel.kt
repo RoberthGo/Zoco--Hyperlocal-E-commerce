@@ -18,6 +18,7 @@ data class SellerUiState(
     val category: ProductCategory = ProductCategory.BAKERY,
     val producerName: String = "",
     val isExpressDelivery: Boolean = false,
+    val imageUri: String? = null,
     val isSavedSuccess: Boolean = false,
     val errorMessage: String? = null
 )
@@ -35,6 +36,7 @@ class SellerViewModel(
     fun onCategoryChanged(category: ProductCategory) = _uiState.update { it.copy(category = category) }
     fun onProducerNameChanged(value: String) = _uiState.update { it.copy(producerName = value) }
     fun onExpressChanged(value: Boolean) = _uiState.update { it.copy(isExpressDelivery = value) }
+    fun onImageUriChanged(uri: String?) = _uiState.update { it.copy(imageUri = uri) }
 
     fun saveProduct() {
         val state = _uiState.value
@@ -53,9 +55,10 @@ class SellerViewModel(
                 category = state.category,
                 producerName = state.producerName.trim(),
                 isExpressDelivery = state.isExpressDelivery,
-                inStock = true
+                inStock = true,
+                imageUrl = state.imageUri
             )
-            repository.insertProduct(newProduct)
+            repository.insertProductWithMedia(newProduct, state.imageUri)
             _uiState.update {
                 SellerUiState(isSavedSuccess = true)
             }

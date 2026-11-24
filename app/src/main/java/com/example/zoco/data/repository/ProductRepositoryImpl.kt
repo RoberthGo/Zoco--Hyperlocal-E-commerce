@@ -1,6 +1,8 @@
 package com.example.zoco.data.repository
 
 import android.util.Log
+import com.example.zoco.data.local.MediaDao
+import com.example.zoco.data.local.MediaEntity
 import com.example.zoco.data.local.ProductDao
 import com.example.zoco.data.local.ProductEntity
 import com.example.zoco.data.remote.RetrofitClient
@@ -10,17 +12,20 @@ import com.example.zoco.domain.model.Product
 import com.example.zoco.domain.model.ProductCategory
 import com.example.zoco.domain.repository.ProductRepository
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 
 /**
- * Repositorio híbrido (Single Source of Truth con Room + Retrofit).
+ * Repositorio híbrido (Single Source of Truth con Room + Retrofit + MediaDao).
  * La base de datos local SQLite (Room) es la fuente inmediata de la verdad para la UI.
  * Las operaciones intentan sincronizar con la API remota de forma protegida para no
  * interrumpir la ejecución si el servidor aún no está desplegado o no hay conexión.
  */
 class ProductRepositoryImpl(
     private val productDao: ProductDao,
-    private val customApiService: ProductApiService? = null
+    private val customApiService: ProductApiService? = null,
+    private val mediaDao: MediaDao? = null
 ) : ProductRepository {
 
     private val productApiService: ProductApiService
@@ -31,8 +36,17 @@ class ProductRepositoryImpl(
     }
 
     override fun getProducts(): Flow<List<Product>> {
-        return productDao.getAllProducts().map { entities ->
-            entities.map { it.toDomain() }
+        return if (mediaDao != null) {
+            combine(productDao.getAllProducts(), mediaDao.getAllMedia()) { products, mediaList ->
+                products.map { entity ->
+                    val media = mediaList.firstOrNull { it.productId == entity.id }
+                    entity.toDomain(imageUrl = media?.uri)
+                }
+            }
+        } else {
+            productDao.getAllProducts().map { entities ->
+                entities.map { it.toDomain() }
+            }
         }
     }
 
@@ -41,8 +55,8 @@ class ProductRepositoryImpl(
         category: ProductCategory,
         expressOnly: Boolean
     ): Flow<List<Product>> {
-        return productDao.getAllProducts().map { entities ->
-            entities.map { it.toDomain() }.filter { product ->
+        return getProducts().map { products ->
+            products.filter { product ->
                 val matchesQuery = query.isBlank() || product.name.contains(query, ignoreCase = true) || product.description.contains(query, ignoreCase = true)
                 val matchesCategory = category == ProductCategory.ALL || product.category == category
                 val matchesExpress = !expressOnly || product.isExpressDelivery
@@ -52,14 +66,37 @@ class ProductRepositoryImpl(
     }
 
     override suspend fun getProductById(id: Long): Product? {
-        return productDao.getProductById(id)?.toDomain()
+        val entity = productDao.getProductById(id) ?: return null
+        val mediaUri = mediaDao?.getMediaById(id)?.uri
+        return entity.toDomain(imageUrl = mediaUri)
     }
 
     override suspend fun insertProduct(product: Product): Long {
+        return insertProductWithMedia(product, product.imageUrl)
+    }
+
+    override suspend fun insertProductWithMedia(product: Product, mediaUri: String?): Long {
         // 1. Guardar primero en la base de datos local (Room)
         val localId = productDao.insertProduct(ProductEntity.fromDomain(product))
 
-        // 2. CONEXIÓN WEB API: Enviar sincronización POST a la API remota de manera segura
+        // 2. Guardar multimedia en MediaDao si se proporcionó URI
+        if (!mediaUri.isNullOrBlank() && mediaDao != null) {
+            try {
+                mediaDao.insertMedia(
+                    MediaEntity(
+                        productId = localId,
+                        uri = mediaUri,
+                        mediaType = "IMAGE",
+                        description = product.name
+                    )
+                )
+                Log.d(TAG, "Multimedia guardada con éxito en MediaDao para producto id=$localId")
+            } catch (e: Exception) {
+                Log.w(TAG, "No se pudo guardar multimedia en MediaDao: ${e.message}")
+            }
+        }
+
+        // 3. CONEXIÓN WEB API: Enviar sincronización POST a la API remota de manera segura
         try {
             val productToSend = product.copy(id = localId)
             val remoteResult = productApiService.createProduct(ProductDto.fromDomain(productToSend))
@@ -72,9 +109,31 @@ class ProductRepositoryImpl(
         return localId
     }
 
+    override suspend fun getMediaForProduct(productId: Long): List<String> {
+        return try {
+            mediaDao?.getMediaByProductId(productId)?.first()?.map { it.uri } ?: emptyList()
+        } catch (_: Exception) {
+            emptyList()
+        }
+    }
+
     override suspend fun updateProduct(product: Product): Boolean {
         // 1. Actualizar en Room localmente
         val rowsAffected = productDao.updateProduct(ProductEntity.fromDomain(product))
+
+        if (!product.imageUrl.isNullOrBlank() && mediaDao != null) {
+            try {
+                mediaDao.deleteMediaByProductId(product.id)
+                mediaDao.insertMedia(
+                    MediaEntity(
+                        productId = product.id,
+                        uri = product.imageUrl,
+                        mediaType = "IMAGE",
+                        description = product.name
+                    )
+                )
+            } catch (_: Exception) {}
+        }
 
         // 2. CONEXIÓN WEB API: Enviar sincronización PUT al servidor remoto
         if (rowsAffected > 0) {
@@ -94,6 +153,11 @@ class ProductRepositoryImpl(
     }
 
     override suspend fun deleteProductById(id: Long): Boolean {
+        // Eliminar multimedia vinculada
+        try {
+            mediaDao?.deleteMediaByProductId(id)
+        } catch (_: Exception) {}
+
         // 1. Eliminar de Room localmente
         val rowsDeleted = productDao.deleteProductById(id)
 
