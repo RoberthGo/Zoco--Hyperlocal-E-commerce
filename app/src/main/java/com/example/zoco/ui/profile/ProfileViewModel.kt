@@ -1,5 +1,6 @@
 package com.example.zoco.ui.profile
 
+import android.content.SharedPreferences
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.zoco.data.remote.RetrofitClient
@@ -8,6 +9,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.util.Locale
 
 data class ProfileUiState(
     val selectedLanguage: String = "es",
@@ -17,13 +19,24 @@ data class ProfileUiState(
     val isOnline: Boolean? = null
 )
 
-class ProfileViewModel : ViewModel() {
+class ProfileViewModel(
+    private val sharedPreferences: SharedPreferences? = null
+) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(ProfileUiState())
+    private val _uiState = MutableStateFlow(
+        ProfileUiState(
+            selectedLanguage = sharedPreferences?.getString(KEY_LANGUAGE, null)
+                ?: if (Locale.getDefault().language == "en") "en" else "es"
+        )
+    )
     val uiState: StateFlow<ProfileUiState> = _uiState.asStateFlow()
 
     fun setLanguage(language: String) {
         _uiState.update { it.copy(selectedLanguage = language) }
+        try {
+            Locale.setDefault(Locale.forLanguageTag(language))
+        } catch (_: Exception) {}
+        sharedPreferences?.edit()?.putString(KEY_LANGUAGE, language)?.apply()
     }
 
     fun updateApiUrl(url: String) {
@@ -48,5 +61,9 @@ class ProfileViewModel : ViewModel() {
                 )
             }
         }
+    }
+
+    companion object {
+        const val KEY_LANGUAGE = "selected_language"
     }
 }

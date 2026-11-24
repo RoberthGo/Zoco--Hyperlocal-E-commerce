@@ -1,5 +1,6 @@
 package com.example.zoco.ui.common
 
+import android.content.SharedPreferences
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import com.example.zoco.domain.repository.OrderRepository
@@ -11,7 +12,8 @@ import com.example.zoco.ui.seller.SellerViewModel
 
 class ViewModelFactory(
     private val productRepository: ProductRepository,
-    private val orderRepository: OrderRepository
+    private val orderRepository: OrderRepository,
+    private val sharedPreferences: SharedPreferences? = null
 ) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
@@ -26,7 +28,7 @@ class ViewModelFactory(
                 CartViewModel(orderRepository) as T
             }
             modelClass.isAssignableFrom(ProfileViewModel::class.java) -> {
-                ProfileViewModel() as T
+                ProfileViewModel(sharedPreferences) as T
             }
             else -> throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")
         }

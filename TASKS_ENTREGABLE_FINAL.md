@@ -46,13 +46,15 @@
 
 ---
 
-### 🔄 TASK-FINAL-03: Implementación del selector dinámico de idioma en tiempo real
+### 🔄 TASK-FINAL-03: Implementación del selector dinámico de idioma en tiempo real [COMPLETADA]
 * **Responsable:** `i18n-engine`
+* **Estado:** ✅ Completada y verificada
 * **Objetivo:** Permitir que el usuario cambie el idioma de la app entre Español e Inglés desde el Perfil de inmediato.
 * **Acciones:**
-  1. Implementar la actualización del `Locale` de la aplicación (vía `AppCompatDelegate.setApplicationLocales` o actualización de configuración de Compose).
-  2. Guardar la preferencia de idioma en la sesión para que al reiniciar la app se conserve el idioma seleccionado.
-  3. Vincular los `RadioButton` de `ProfileScreen` para ejecutar el cambio inmediato en la interfaz.
+  1. Implementar la actualización del `Locale` de la aplicación mediante `CompositionLocalProvider(LocalConfiguration, LocalContext)` y `LocaleManager` (API 33+).
+  2. Persistir la preferencia de idioma en `SharedPreferences` ("zoco_prefs") a través de `ProfileViewModel` y `ViewModelFactory`.
+  3. Vincular los `RadioButton` de `ProfileScreen` para ejecutar el cambio inmediato en toda la interfaz sin recargar la aplicación.
+  4. Agregar pruebas unitarias en `ProfileViewModelTest.kt`.
 
 ---
 

@@ -1,6 +1,10 @@
 package com.example.zoco
 
+import android.content.Context
+import android.content.res.Configuration
+import android.os.Build
 import android.os.Bundle
+import android.os.LocaleList
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -24,9 +28,13 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -43,6 +51,7 @@ import com.example.zoco.ui.navigation.ZocoNavHost
 import com.example.zoco.ui.profile.ProfileViewModel
 import com.example.zoco.ui.seller.SellerViewModel
 import com.example.zoco.ui.theme.ZocoTheme
+import java.util.Locale
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -50,9 +59,11 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
 
         val app = application as ZocoApplication
+        val prefs = getSharedPreferences("zoco_prefs", Context.MODE_PRIVATE)
         val viewModelFactory = ViewModelFactory(
             productRepository = app.productRepository,
-            orderRepository = app.orderRepository
+            orderRepository = app.orderRepository,
+            sharedPreferences = prefs
         )
 
         setContent {
@@ -88,93 +99,43 @@ fun ZocoApp(
 
     val snackbarHostState = remember { SnackbarHostState() }
 
-    BoxWithConstraints(modifier = modifier.fillMaxSize()) {
-        val isWideScreen = maxWidth >= 600.dp
+    // Soporte para internacionalización dinámica en tiempo real (TASK-FINAL-03)
+    val locale = remember(profileState.selectedLanguage) {
+        Locale.forLanguageTag(profileState.selectedLanguage)
+    }
+    val currentConfig = LocalConfiguration.current
+    val currentContext = LocalContext.current
+    val localizedConfig = remember(locale, currentConfig) {
+        Configuration(currentConfig).apply {
+            setLocale(locale)
+            setLayoutDirection(locale)
+        }
+    }
+    val localizedContext = remember(locale, currentContext) {
+        currentContext.createConfigurationContext(localizedConfig)
+    }
 
-        if (isWideScreen) {
-            Row(modifier = Modifier.fillMaxSize()) {
-                NavigationRail {
-                    Screen.entries.forEach { screen ->
-                        NavigationRailItem(
-                            selected = currentScreen == screen,
-                            onClick = {
-                                if (currentRoute != screen.route) {
-                                    navController.navigate(screen.route) {
-                                        popUpTo(navController.graph.findStartDestination().id) {
-                                            saveState = true
-                                        }
-                                        launchSingleTop = true
-                                        restoreState = true
-                                    }
-                                }
-                            },
-                            icon = {
-                                if (screen == Screen.CART && cartState.items.isNotEmpty()) {
-                                    BadgedBox(badge = { Badge { Text(cartState.items.size.toString()) } }) {
-                                        Icon(screen.icon, contentDescription = stringResource(screen.titleResId))
-                                    }
-                                } else {
-                                    Icon(screen.icon, contentDescription = stringResource(screen.titleResId))
-                                }
-                            },
-                            label = { Text(stringResource(screen.titleResId)) }
-                        )
-                    }
-                }
+    LaunchedEffect(profileState.selectedLanguage) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            try {
+                currentContext.getSystemService(android.app.LocaleManager::class.java)?.applicationLocales =
+                    LocaleList.forLanguageTags(profileState.selectedLanguage)
+            } catch (_: Exception) {}
+        }
+    }
 
-                Scaffold(
-                    snackbarHost = { SnackbarHost(snackbarHostState) },
-                    topBar = {
-                        TopAppBar(
-                            title = {
-                                Text(
-                                    stringResource(R.string.app_name) + " - " + stringResource(currentScreen.titleResId),
-                                    fontWeight = FontWeight.Bold
-                                )
-                            },
-                            colors = TopAppBarDefaults.topAppBarColors(
-                                containerColor = MaterialTheme.colorScheme.primaryContainer,
-                                titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
-                            )
-                        )
-                    }
-                ) { innerPadding ->
-                    ZocoNavHost(
-                        navController = navController,
-                        catalogViewModel = catalogViewModel,
-                        catalogState = catalogState,
-                        cartViewModel = cartViewModel,
-                        cartState = cartState,
-                        sellerViewModel = sellerViewModel,
-                        sellerState = sellerState,
-                        profileViewModel = profileViewModel,
-                        profileState = profileState,
-                        snackbarHostState = snackbarHostState,
-                        modifier = Modifier.padding(innerPadding)
-                    )
-                }
-            }
-        } else {
-            Scaffold(
-                snackbarHost = { SnackbarHost(snackbarHostState) },
-                topBar = {
-                    TopAppBar(
-                        title = {
-                            Text(
-                                stringResource(R.string.app_name),
-                                fontWeight = FontWeight.Bold
-                            )
-                        },
-                        colors = TopAppBarDefaults.topAppBarColors(
-                            containerColor = MaterialTheme.colorScheme.primaryContainer,
-                            titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
-                        )
-                    )
-                },
-                bottomBar = {
-                    NavigationBar {
+    CompositionLocalProvider(
+        LocalConfiguration provides localizedConfig,
+        LocalContext provides localizedContext
+    ) {
+        BoxWithConstraints(modifier = modifier.fillMaxSize()) {
+            val isWideScreen = maxWidth >= 600.dp
+
+            if (isWideScreen) {
+                Row(modifier = Modifier.fillMaxSize()) {
+                    NavigationRail {
                         Screen.entries.forEach { screen ->
-                            NavigationBarItem(
+                            NavigationRailItem(
                                 selected = currentScreen == screen,
                                 onClick = {
                                     if (currentRoute != screen.route) {
@@ -200,21 +161,101 @@ fun ZocoApp(
                             )
                         }
                     }
+
+                    Scaffold(
+                        snackbarHost = { SnackbarHost(snackbarHostState) },
+                        topBar = {
+                            TopAppBar(
+                                title = {
+                                    Text(
+                                        stringResource(R.string.app_name) + " - " + stringResource(currentScreen.titleResId),
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                },
+                                colors = TopAppBarDefaults.topAppBarColors(
+                                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                                    titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                            )
+                        }
+                    ) { innerPadding ->
+                        ZocoNavHost(
+                            navController = navController,
+                            catalogViewModel = catalogViewModel,
+                            catalogState = catalogState,
+                            cartViewModel = cartViewModel,
+                            cartState = cartState,
+                            sellerViewModel = sellerViewModel,
+                            sellerState = sellerState,
+                            profileViewModel = profileViewModel,
+                            profileState = profileState,
+                            snackbarHostState = snackbarHostState,
+                            modifier = Modifier.padding(innerPadding)
+                        )
+                    }
                 }
-            ) { innerPadding ->
-                ZocoNavHost(
-                    navController = navController,
-                    catalogViewModel = catalogViewModel,
-                    catalogState = catalogState,
-                    cartViewModel = cartViewModel,
-                    cartState = cartState,
-                    sellerViewModel = sellerViewModel,
-                    sellerState = sellerState,
-                    profileViewModel = profileViewModel,
-                    profileState = profileState,
-                    snackbarHostState = snackbarHostState,
-                    modifier = Modifier.padding(innerPadding)
-                )
+            } else {
+                Scaffold(
+                    snackbarHost = { SnackbarHost(snackbarHostState) },
+                    topBar = {
+                        TopAppBar(
+                            title = {
+                                Text(
+                                    stringResource(R.string.app_name),
+                                    fontWeight = FontWeight.Bold
+                                )
+                            },
+                            colors = TopAppBarDefaults.topAppBarColors(
+                                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                                titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                        )
+                    },
+                    bottomBar = {
+                        NavigationBar {
+                            Screen.entries.forEach { screen ->
+                                NavigationBarItem(
+                                    selected = currentScreen == screen,
+                                    onClick = {
+                                        if (currentRoute != screen.route) {
+                                            navController.navigate(screen.route) {
+                                                popUpTo(navController.graph.findStartDestination().id) {
+                                                    saveState = true
+                                                }
+                                                launchSingleTop = true
+                                                restoreState = true
+                                            }
+                                        }
+                                    },
+                                    icon = {
+                                        if (screen == Screen.CART && cartState.items.isNotEmpty()) {
+                                            BadgedBox(badge = { Badge { Text(cartState.items.size.toString()) } }) {
+                                                Icon(screen.icon, contentDescription = stringResource(screen.titleResId))
+                                            }
+                                        } else {
+                                            Icon(screen.icon, contentDescription = stringResource(screen.titleResId))
+                                        }
+                                    },
+                                    label = { Text(stringResource(screen.titleResId)) }
+                                )
+                            }
+                        }
+                    }
+                ) { innerPadding ->
+                    ZocoNavHost(
+                        navController = navController,
+                        catalogViewModel = catalogViewModel,
+                        catalogState = catalogState,
+                        cartViewModel = cartViewModel,
+                        cartState = cartState,
+                        sellerViewModel = sellerViewModel,
+                        sellerState = sellerState,
+                        profileViewModel = profileViewModel,
+                        profileState = profileState,
+                        snackbarHostState = snackbarHostState,
+                        modifier = Modifier.padding(innerPadding)
+                    )
+                }
             }
         }
     }
