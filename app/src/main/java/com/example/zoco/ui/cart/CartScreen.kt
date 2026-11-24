@@ -129,14 +129,14 @@ fun CartScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = "Tus pedidos recientes (${uiState.recentOrders.size}):",
+                                text = stringResource(R.string.recent_orders_title, uiState.recentOrders.size),
                                 style = MaterialTheme.typography.titleSmall,
                                 fontWeight = FontWeight.Bold
                             )
                             IconButton(onClick = onSyncOrders, modifier = Modifier.size(32.dp)) {
                                 Icon(
                                     Icons.Default.CloudSync,
-                                    contentDescription = "Sincronizar pedidos con Web API",
+                                    contentDescription = stringResource(R.string.sync_orders_description),
                                     tint = MaterialTheme.colorScheme.primary
                                 )
                             }
@@ -164,7 +164,7 @@ fun CartScreen(
                     ) {
                         Column(modifier = Modifier.padding(14.dp)) {
                             Text(
-                                text = "Datos de Entrega y Envío",
+                                text = stringResource(R.string.delivery_info_title),
                                 style = MaterialTheme.typography.titleSmall,
                                 fontWeight = FontWeight.Bold
                             )
@@ -172,7 +172,7 @@ fun CartScreen(
                             OutlinedTextField(
                                 value = uiState.customerName,
                                 onValueChange = onNameChange,
-                                label = { Text("Nombre del Comprador") },
+                                label = { Text(stringResource(R.string.buyer_name_label)) },
                                 modifier = Modifier.fillMaxWidth(),
                                 singleLine = true
                             )
@@ -180,7 +180,7 @@ fun CartScreen(
                             OutlinedTextField(
                                 value = uiState.deliveryAddress,
                                 onValueChange = onAddressChange,
-                                label = { Text("Dirección de Entrega") },
+                                label = { Text(stringResource(R.string.delivery_address_label)) },
                                 modifier = Modifier.fillMaxWidth(),
                                 singleLine = true
                             )
@@ -195,7 +195,7 @@ fun CartScreen(
                                         checked = uiState.isExpress,
                                         onCheckedChange = onExpressChange
                                     )
-                                    Text("Entrega Express")
+                                    Text(stringResource(R.string.express_delivery_checkbox))
                                 }
 
                                 OutlinedButton(onClick = { showTimePickerDialog = true }) {
@@ -385,7 +385,7 @@ fun RecentOrderCard(order: Order) {
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        text = "Pedido #${order.id}",
+                        text = stringResource(R.string.order_number_label, order.id),
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold
                     )
@@ -395,7 +395,7 @@ fun RecentOrderCard(order: Order) {
                         color = if (isOnline) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.secondaryContainer
                     ) {
                         Text(
-                            text = if (isOnline) "Web API" else "Room Local",
+                            text = if (isOnline) stringResource(R.string.tag_web_api) else stringResource(R.string.tag_room_local),
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
                             color = if (isOnline) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSecondaryContainer,
@@ -412,7 +412,7 @@ fun RecentOrderCard(order: Order) {
             }
             if (order.customerName.isNotBlank()) {
                 Text(
-                    text = "Cliente: ${order.customerName}",
+                    text = stringResource(R.string.order_customer_label, order.customerName),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.outline,
                     modifier = Modifier.padding(top = 2.dp)
@@ -430,12 +430,12 @@ fun RecentOrderCard(order: Order) {
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
-                    text = "Hora: ${order.scheduledTime}",
+                    text = stringResource(R.string.order_time_label, order.scheduledTime),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.outline
                 )
                 Text(
-                    text = "Total: \$${"%.2f".format(order.totalAmount)}",
+                    text = stringResource(R.string.order_total_label, "%.2f".format(order.totalAmount)),
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.secondary

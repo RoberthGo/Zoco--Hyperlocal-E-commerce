@@ -108,7 +108,7 @@ fun ProfileScreen(
                     )
                     Spacer(modifier = Modifier.size(8.dp))
                     Text(
-                        text = "Conexión Web API (Retrofit)",
+                        text = stringResource(R.string.api_connection_title),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )
@@ -116,7 +116,7 @@ fun ProfileScreen(
 
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "URL base del backend Django REST:",
+                    text = stringResource(R.string.api_url_label),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.outline
                 )
@@ -140,19 +140,19 @@ fun ProfileScreen(
                 ) {
                     AssistChip(
                         onClick = { onApiUrlChange(RetrofitClient.CURRENT_WIFI_URL) },
-                        label = { Text("Wi-Fi PC (192.168.20.180)") }
+                        label = { Text(stringResource(R.string.chip_wifi_pc)) }
                     )
                     AssistChip(
                         onClick = { onApiUrlChange(RetrofitClient.LOCALHOST_URL) },
-                        label = { Text("Localhost (127.0.0.1)") }
+                        label = { Text(stringResource(R.string.chip_localhost)) }
                     )
                     AssistChip(
                         onClick = { onApiUrlChange(RetrofitClient.EMULATOR_LOOPBACK_URL) },
-                        label = { Text("Emulador (10.0.2.2)") }
+                        label = { Text(stringResource(R.string.chip_emulator)) }
                     )
                     AssistChip(
                         onClick = { onApiUrlChange(RetrofitClient.PREVIOUS_WIFI_URL) },
-                        label = { Text("Wi-Fi Casa (192.168.1.147)") }
+                        label = { Text(stringResource(R.string.chip_wifi_home)) }
                     )
                 }
 
@@ -174,7 +174,7 @@ fun ProfileScreen(
                             Icon(Icons.Default.NetworkCheck, contentDescription = null, modifier = Modifier.size(18.dp))
                             Spacer(modifier = Modifier.size(6.dp))
                         }
-                        Text("Probar Conexión")
+                        Text(stringResource(R.string.btn_test_connection))
                     }
 
                     if (uiState.isOnline != null) {
@@ -187,7 +187,7 @@ fun ProfileScreen(
                             )
                             Spacer(modifier = Modifier.size(4.dp))
                             Text(
-                                text = if (uiState.isOnline == true) "En Línea" else "Offline",
+                                text = if (uiState.isOnline == true) stringResource(R.string.status_online) else stringResource(R.string.status_offline),
                                 style = MaterialTheme.typography.labelMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = if (uiState.isOnline == true) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
@@ -249,14 +249,14 @@ fun ProfileScreen(
                     )
                     Spacer(modifier = Modifier.size(8.dp))
                     Text(
-                        text = "Equipo de Desarrollo Zoco",
+                        text = stringResource(R.string.team_title),
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold
                     )
                 }
                 Spacer(modifier = Modifier.height(6.dp))
                 Text(
-                    text = "1. Roberto Gordillo Herrera\n2. Leonardo Nuñez Zavala\n3. Ricardo Abraham Pérez Hernández",
+                    text = stringResource(R.string.team_members),
                     style = MaterialTheme.typography.bodyMedium
                 )
             }

@@ -100,7 +100,7 @@ fun CatalogScreen(
                 } else {
                     Icon(
                         Icons.Default.CloudSync,
-                        contentDescription = "Sincronizar con Web API"
+                        contentDescription = stringResource(R.string.sync_web_api)
                     )
                 }
             }
@@ -206,7 +206,7 @@ fun CatalogScreen(
                         Button(onClick = onSyncWeb) {
                             Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(18.dp))
                             Spacer(modifier = Modifier.size(6.dp))
-                            Text("Sincronizar desde Web API")
+                            Text(stringResource(R.string.sync_web_api))
                         }
                     }
                 }
@@ -291,7 +291,7 @@ fun ProductItemCard(
                 modifier = Modifier.padding(bottom = 6.dp)
             ) {
                 Text(
-                    text = if (isOnline) "En Línea (Web API)" else "Local (Room SQLite)",
+                    text = if (isOnline) stringResource(R.string.badge_online_api) else stringResource(R.string.badge_local_room),
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Bold,
                     color = if (isOnline) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSecondaryContainer,
@@ -353,7 +353,7 @@ fun ProductItemCard(
                     ) {
                         Icon(
                             Icons.Default.Delete,
-                            contentDescription = "Eliminar de base de datos y Web API",
+                            contentDescription = stringResource(R.string.delete_product_description),
                             tint = MaterialTheme.colorScheme.error.copy(alpha = 0.8f)
                         )
                     }

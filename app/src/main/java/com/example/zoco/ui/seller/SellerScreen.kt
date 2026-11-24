@@ -109,7 +109,7 @@ fun SellerScreen(
         OutlinedTextField(
             value = uiState.description,
             onValueChange = onDescriptionChange,
-            label = { Text("Descripción") },
+            label = { Text(stringResource(R.string.product_description_label)) },
             modifier = Modifier.fillMaxWidth(),
             minLines = 3
         )

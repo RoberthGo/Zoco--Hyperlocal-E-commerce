@@ -20,6 +20,10 @@
     <string name="add_to_cart">Agregar</string>
     <string name="added_to_cart">¡Agregado al carrito!</string>
     <string name="no_products_found">No se encontraron productos con estos filtros.</string>
+    <string name="sync_web_api">Sincronizar con Web API</string>
+    <string name="delete_product_description">Eliminar de base de datos y Web API</string>
+    <string name="badge_online_api">En Línea (Web API)</string>
+    <string name="badge_local_room">Local (Room SQLite)</string>
 
     <!-- Cart Screen -->
     <string name="cart_title">Mi Pedido Local</string>
@@ -36,6 +40,18 @@
     <string name="remove_item">Eliminar producto</string>
     <string name="cart_total_label">Total a pagar:</string>
     <string name="confirm_order_button">Confirmar Pedido</string>
+    <string name="recent_orders_title">Tus pedidos recientes (%d):</string>
+    <string name="sync_orders_description">Sincronizar pedidos con Web API</string>
+    <string name="delivery_info_title">Datos de Entrega y Envío</string>
+    <string name="buyer_name_label">Nombre del Comprador</string>
+    <string name="delivery_address_label">Dirección de Entrega</string>
+    <string name="express_delivery_checkbox">Entrega Express</string>
+    <string name="order_number_label">Pedido #%d</string>
+    <string name="order_customer_label">Cliente: %s</string>
+    <string name="order_time_label">Hora: %s</string>
+    <string name="order_total_label">Total: $%s</string>
+    <string name="tag_web_api">Web API</string>
+    <string name="tag_room_local">Room Local</string>
 
     <!-- Seller Screen -->
     <string name="seller_title">Registrar Producto Local</string>
@@ -43,6 +59,7 @@
     <string name="product_price_label">Precio (MXN)</string>
     <string name="product_category_label">Categoría</string>
     <string name="product_producer_label">Productor / Negocio</string>
+    <string name="product_description_label">Descripción</string>
     <string name="product_express_checkbox">Ofrece entrega inmediata</string>
     <string name="save_product_button">Guardar en Catálogo</string>
     <string name="product_saved_success">Producto registrado correctamente</string>
@@ -57,4 +74,15 @@
     <string name="language_es">Español</string>
     <string name="language_en">Inglés</string>
     <string name="offline_status">Modo Offline Activo (Base de datos local)</string>
+    <string name="api_connection_title">Conexión Web API (Retrofit)</string>
+    <string name="api_url_label">URL base del backend Django REST:</string>
+    <string name="chip_wifi_pc">Wi-Fi PC (192.168.20.180)</string>
+    <string name="chip_localhost">Localhost (127.0.0.1)</string>
+    <string name="chip_emulator">Emulador (10.0.2.2)</string>
+    <string name="chip_wifi_home">Wi-Fi Casa (192.168.1.147)</string>
+    <string name="btn_test_connection">Probar Conexión</string>
+    <string name="status_online">En Línea</string>
+    <string name="status_offline">Offline</string>
+    <string name="team_title">Equipo de Desarrollo Zoco</string>
+    <string name="team_members">1. Roberto Gordillo Herrera\n2. Leonardo Nuñez Zavala\n3. Ricardo Abraham Pérez Hernández</string>
 </resources>

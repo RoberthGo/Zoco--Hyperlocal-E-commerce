@@ -33,14 +33,16 @@
 
 ---
 
-### 🌐 TASK-FINAL-02: Extracción y cobertura del 100% de cadenas para i18n
+### 🌐 TASK-FINAL-02: Extracción y cobertura del 100% de cadenas para i18n [COMPLETADA]
 * **Responsable:** `i18n-engine`
+* **Estado:** ✅ Completada y verificada
 * **Objetivo:** Eliminar cadenas de texto hardcodeadas en las pantallas para que la internacionalización sea total.
 * **Acciones:**
   1. Identificar textos quemados en español en `ProfileScreen.kt` (títulos de tarjetas, botones de prueba de conexión, labels de IP, nombres de integrantes).
-  2. Identificar textos en `CartScreen.kt` ("Tus pedidos recientes", labels de checkout) y `CatalogScreen.kt` (diálogos y confirmaciones).
+  2. Identificar textos en `CartScreen.kt` ("Tus pedidos recientes", labels de checkout) y `CatalogScreen.kt` (diálogos, badges de procedencia y confirmaciones).
   3. Declarar todas las cadenas faltantes en `res/values/strings.xml` (Español).
   4. Declarar las traducciones exactas en `res/values-en/strings.xml` (Inglés).
+  5. Refactorizar `ProfileScreen.kt`, `CartScreen.kt`, `CatalogScreen.kt` y `SellerScreen.kt` para usar `stringResource(...)`.
 
 ---
 
