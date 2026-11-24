@@ -31,11 +31,6 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -43,18 +38,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.zoco.R
 import com.example.zoco.data.remote.RetrofitClient
-import kotlinx.coroutines.launch
 
 @Composable
 fun ProfileScreen(
+    uiState: ProfileUiState = ProfileUiState(),
+    onLanguageChange: (String) -> Unit = {},
+    onApiUrlChange: (String) -> Unit = {},
+    onCheckConnection: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
-    val scope = rememberCoroutineScope()
-    var selectedLanguage by remember { mutableStateOf("es") }
-    var apiUrl by remember { mutableStateOf(RetrofitClient.currentBaseUrl) }
-    var isCheckingConnection by remember { mutableStateOf(false) }
-    var connectionStatus by remember { mutableStateOf<String?>("Listo para probar conexión con Django REST API") }
-    var isOnline by remember { mutableStateOf<Boolean?>(null) }
     val chipScrollState = rememberScrollState()
 
     Column(
@@ -131,11 +123,8 @@ fun ProfileScreen(
 
                 Spacer(modifier = Modifier.height(4.dp))
                 OutlinedTextField(
-                    value = apiUrl,
-                    onValueChange = {
-                        apiUrl = it
-                        RetrofitClient.updateBaseUrl(it)
-                    },
+                    value = uiState.apiUrl,
+                    onValueChange = onApiUrlChange,
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
                 )
@@ -150,31 +139,19 @@ fun ProfileScreen(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     AssistChip(
-                        onClick = {
-                            apiUrl = RetrofitClient.CURRENT_WIFI_URL
-                            RetrofitClient.updateBaseUrl(apiUrl)
-                        },
+                        onClick = { onApiUrlChange(RetrofitClient.CURRENT_WIFI_URL) },
                         label = { Text("Wi-Fi PC (192.168.20.180)") }
                     )
                     AssistChip(
-                        onClick = {
-                            apiUrl = RetrofitClient.LOCALHOST_URL
-                            RetrofitClient.updateBaseUrl(apiUrl)
-                        },
+                        onClick = { onApiUrlChange(RetrofitClient.LOCALHOST_URL) },
                         label = { Text("Localhost (127.0.0.1)") }
                     )
                     AssistChip(
-                        onClick = {
-                            apiUrl = RetrofitClient.EMULATOR_LOOPBACK_URL
-                            RetrofitClient.updateBaseUrl(apiUrl)
-                        },
+                        onClick = { onApiUrlChange(RetrofitClient.EMULATOR_LOOPBACK_URL) },
                         label = { Text("Emulador (10.0.2.2)") }
                     )
                     AssistChip(
-                        onClick = {
-                            apiUrl = RetrofitClient.PREVIOUS_WIFI_URL
-                            RetrofitClient.updateBaseUrl(apiUrl)
-                        },
+                        onClick = { onApiUrlChange(RetrofitClient.PREVIOUS_WIFI_URL) },
                         label = { Text("Wi-Fi Casa (192.168.1.147)") }
                     )
                 }
@@ -187,19 +164,10 @@ fun ProfileScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     FilledTonalButton(
-                        onClick = {
-                            scope.launch {
-                                isCheckingConnection = true
-                                connectionStatus = "Probando conexión con Django REST API..."
-                                val (ok, msg) = RetrofitClient.pingBackend()
-                                isOnline = ok
-                                isCheckingConnection = false
-                                connectionStatus = msg
-                            }
-                        },
-                        enabled = !isCheckingConnection
+                        onClick = onCheckConnection,
+                        enabled = !uiState.isCheckingConnection
                     ) {
-                        if (isCheckingConnection) {
+                        if (uiState.isCheckingConnection) {
                             CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
                             Spacer(modifier = Modifier.size(8.dp))
                         } else {
@@ -209,36 +177,35 @@ fun ProfileScreen(
                         Text("Probar Conexión")
                     }
 
-                    if (isOnline != null) {
+                    if (uiState.isOnline != null) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(
-                                if (isOnline == true) Icons.Default.CloudDone else Icons.Default.CloudOff,
+                                if (uiState.isOnline == true) Icons.Default.CloudDone else Icons.Default.CloudOff,
                                 contentDescription = null,
-                                tint = if (isOnline == true) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
+                                tint = if (uiState.isOnline == true) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
                                 modifier = Modifier.size(20.dp)
                             )
                             Spacer(modifier = Modifier.size(4.dp))
                             Text(
-                                text = if (isOnline == true) "En Línea" else "Offline",
+                                text = if (uiState.isOnline == true) "En Línea" else "Offline",
                                 style = MaterialTheme.typography.labelMedium,
                                 fontWeight = FontWeight.Bold,
-                                color = if (isOnline == true) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
+                                color = if (uiState.isOnline == true) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
                             )
                         }
                     }
                 }
 
-                if (connectionStatus != null) {
+                if (uiState.connectionStatus != null) {
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = connectionStatus ?: "",
+                        text = uiState.connectionStatus ?: "",
                         style = MaterialTheme.typography.bodySmall,
-                        color = if (isOnline == true) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
+                        color = if (uiState.isOnline == true) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
                     )
                 }
             }
         }
-
 
         // Preferencias de Idioma
         Card(modifier = Modifier.fillMaxWidth()) {
@@ -254,14 +221,14 @@ fun ProfileScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     RadioButton(
-                        selected = selectedLanguage == "es",
-                        onClick = { selectedLanguage = "es" }
+                        selected = uiState.selectedLanguage == "es",
+                        onClick = { onLanguageChange("es") }
                     )
                     Text(stringResource(R.string.language_es), modifier = Modifier.padding(end = 16.dp))
 
                     RadioButton(
-                        selected = selectedLanguage == "en",
-                        onClick = { selectedLanguage = "en" }
+                        selected = uiState.selectedLanguage == "en",
+                        onClick = { onLanguageChange("en") }
                     )
                     Text(stringResource(R.string.language_en))
                 }

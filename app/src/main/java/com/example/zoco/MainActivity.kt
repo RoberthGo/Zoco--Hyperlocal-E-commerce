@@ -40,6 +40,7 @@ import com.example.zoco.ui.catalog.CatalogViewModel
 import com.example.zoco.ui.common.ViewModelFactory
 import com.example.zoco.ui.navigation.Screen
 import com.example.zoco.ui.navigation.ZocoNavHost
+import com.example.zoco.ui.profile.ProfileViewModel
 import com.example.zoco.ui.seller.SellerViewModel
 import com.example.zoco.ui.theme.ZocoTheme
 
@@ -73,10 +74,12 @@ fun ZocoApp(
     val catalogViewModel: CatalogViewModel = viewModel(factory = viewModelFactory)
     val cartViewModel: CartViewModel = viewModel(factory = viewModelFactory)
     val sellerViewModel: SellerViewModel = viewModel(factory = viewModelFactory)
+    val profileViewModel: ProfileViewModel = viewModel(factory = viewModelFactory)
 
     val catalogState by catalogViewModel.uiState.collectAsStateWithLifecycle()
     val cartState by cartViewModel.uiState.collectAsStateWithLifecycle()
     val sellerState by sellerViewModel.uiState.collectAsStateWithLifecycle()
+    val profileState by profileViewModel.uiState.collectAsStateWithLifecycle()
 
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
@@ -144,6 +147,8 @@ fun ZocoApp(
                         cartState = cartState,
                         sellerViewModel = sellerViewModel,
                         sellerState = sellerState,
+                        profileViewModel = profileViewModel,
+                        profileState = profileState,
                         snackbarHostState = snackbarHostState,
                         modifier = Modifier.padding(innerPadding)
                     )
@@ -205,6 +210,8 @@ fun ZocoApp(
                     cartState = cartState,
                     sellerViewModel = sellerViewModel,
                     sellerState = sellerState,
+                    profileViewModel = profileViewModel,
+                    profileState = profileState,
                     snackbarHostState = snackbarHostState,
                     modifier = Modifier.padding(innerPadding)
                 )

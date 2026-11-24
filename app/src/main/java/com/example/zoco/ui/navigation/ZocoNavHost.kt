@@ -13,6 +13,8 @@ import com.example.zoco.ui.catalog.CatalogScreen
 import com.example.zoco.ui.catalog.CatalogUiState
 import com.example.zoco.ui.catalog.CatalogViewModel
 import com.example.zoco.ui.profile.ProfileScreen
+import com.example.zoco.ui.profile.ProfileUiState
+import com.example.zoco.ui.profile.ProfileViewModel
 import com.example.zoco.ui.seller.SellerScreen
 import com.example.zoco.ui.seller.SellerUiState
 import com.example.zoco.ui.seller.SellerViewModel
@@ -26,6 +28,8 @@ fun ZocoNavHost(
     cartState: CartUiState,
     sellerViewModel: SellerViewModel,
     sellerState: SellerUiState,
+    profileViewModel: ProfileViewModel,
+    profileState: ProfileUiState,
     snackbarHostState: SnackbarHostState,
     modifier: Modifier = Modifier
 ) {
@@ -75,7 +79,12 @@ fun ZocoNavHost(
         }
 
         composable(route = Screen.PROFILE.route) {
-            ProfileScreen()
+            ProfileScreen(
+                uiState = profileState,
+                onLanguageChange = profileViewModel::setLanguage,
+                onApiUrlChange = profileViewModel::updateApiUrl,
+                onCheckConnection = profileViewModel::checkConnection
+            )
         }
     }
 }

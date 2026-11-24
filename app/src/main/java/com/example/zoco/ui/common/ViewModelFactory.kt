@@ -6,6 +6,7 @@ import com.example.zoco.domain.repository.OrderRepository
 import com.example.zoco.domain.repository.ProductRepository
 import com.example.zoco.ui.cart.CartViewModel
 import com.example.zoco.ui.catalog.CatalogViewModel
+import com.example.zoco.ui.profile.ProfileViewModel
 import com.example.zoco.ui.seller.SellerViewModel
 
 class ViewModelFactory(
@@ -23,6 +24,9 @@ class ViewModelFactory(
             }
             modelClass.isAssignableFrom(CartViewModel::class.java) -> {
                 CartViewModel(orderRepository) as T
+            }
+            modelClass.isAssignableFrom(ProfileViewModel::class.java) -> {
+                ProfileViewModel() as T
             }
             else -> throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")
         }
