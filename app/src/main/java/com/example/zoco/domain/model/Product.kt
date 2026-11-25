@@ -11,9 +11,9 @@ enum class ProductCategory {
 data class Product(
     val id: Long = 0,
     val name: String,
-    val description: String,
+    val description: String = "",
     val price: Double,
-    val category: ProductCategory,
+    val category: ProductCategory = ProductCategory.ALL,
     val producerName: String,
     val isExpressDelivery: Boolean = false,
     val inStock: Boolean = true,

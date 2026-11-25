@@ -62,6 +62,10 @@ import coil.compose.AsyncImage
 import com.example.zoco.R
 import com.example.zoco.domain.model.Product
 import com.example.zoco.domain.model.ProductCategory
+import com.example.zoco.ui.common.AdaptiveBreakpoints
+import com.example.zoco.ui.common.AdaptiveProductList
+import com.example.zoco.ui.common.DeviceScreenSizePreviews
+import com.example.zoco.ui.theme.ZocoTheme
 import kotlinx.coroutines.launch
 
 @Composable
@@ -223,38 +227,18 @@ fun CatalogScreen(
                         }
                     }
                 }
-            } else if (maxWidth >= 600.dp) {
-                LazyVerticalGrid(
-                    columns = GridCells.Adaptive(minSize = 260.dp),
-                    contentPadding = PaddingValues(bottom = 80.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    items(uiState.products, key = { it.id }) { product ->
-                        ProductItemCard(
-                            product = product,
-                            onAddToCart = {
-                                selectedProductForPurchase = product
-                            },
-                            onDelete = { onDeleteProduct(product) }
-                        )
-                    }
-                }
             } else {
-                LazyColumn(
-                    contentPadding = PaddingValues(bottom = 80.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    items(uiState.products, key = { it.id }) { product ->
-                        ProductItemCard(
-                            product = product,
-                            onAddToCart = {
-                                selectedProductForPurchase = product
-                            },
-                            onDelete = { onDeleteProduct(product) }
-                        )
+                val widthSizeClass = AdaptiveBreakpoints.getWidthSizeClass(maxWidth)
+                AdaptiveProductList(
+                    products = uiState.products,
+                    widthSizeClass = widthSizeClass,
+                    onAddToCart = { product ->
+                        selectedProductForPurchase = product
+                    },
+                    onDeleteProduct = { product ->
+                        onDeleteProduct(product)
                     }
-                }
+                )
             }
         }
     }
@@ -599,6 +583,29 @@ fun ProductPurchaseBottomSheet(
                     fontWeight = FontWeight.Bold
                 )
             }
+        }
+    }
+}
+
+@DeviceScreenSizePreviews
+@Composable
+fun CatalogScreenAdaptivePreview() {
+    ZocoTheme {
+        Surface {
+            CatalogScreen(
+                uiState = CatalogUiState(
+                    products = listOf(
+                        Product(id = 1, name = "Pan de Masa Madre", description = "Horneado con masa madre tradicional", price = 45.0, category = ProductCategory.BAKERY, stock = 10, producerName = "Panadería Sol"),
+                        Product(id = 2, name = "Manzanas Criollas (1kg)", description = "Cosecha fresca del día", price = 32.0, category = ProductCategory.PRODUCE, stock = 8, producerName = "Huerto San José"),
+                        Product(id = 3, name = "Queso Fresco Local", description = "Queso artesanal pasteurizado", price = 75.0, category = ProductCategory.DAIRY, stock = 15, producerName = "Lácteos del Sur")
+                    )
+                ),
+                onSearchChange = {},
+                onCategoryChange = {},
+                onExpressFilterChange = {},
+                onAddToCart = { _, _ -> },
+                snackbarHostState = remember { SnackbarHostState() }
+            )
         }
     }
 }

@@ -48,10 +48,13 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import coil.compose.AsyncImage
+import androidx.compose.material3.Surface
 import com.example.zoco.R
 import com.example.zoco.domain.model.Product
 import com.example.zoco.domain.model.ProductCategory
 import com.example.zoco.ui.catalog.ProductItemCard
+import com.example.zoco.ui.common.DeviceScreenSizePreviews
+import com.example.zoco.ui.theme.ZocoTheme
 import java.io.File
 
 @Composable
@@ -387,5 +390,32 @@ private fun SellerFormContent(
         modifier = Modifier.fillMaxWidth()
     ) {
         Text(text = stringResource(R.string.save_product_button))
+    }
+}
+
+@DeviceScreenSizePreviews
+@Composable
+fun SellerScreenAdaptivePreview() {
+    ZocoTheme {
+        Surface {
+            SellerScreen(
+                uiState = SellerUiState(
+                    name = "Miel de Azahar 500g",
+                    producerName = "Apícola Los Cedros",
+                    price = "120.00",
+                    stock = "25",
+                    description = "Miel cruda de flores de azahar 100% natural recolectada artesanalmente."
+                ),
+                onNameChange = {},
+                onDescriptionChange = {},
+                onPriceChange = {},
+                onStockChange = {},
+                onCategoryChange = {},
+                onProducerNameChange = {},
+                onExpressChange = {},
+                onImageUriChange = {},
+                onSaveProduct = {}
+            )
+        }
     }
 }
