@@ -21,27 +21,36 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AddShoppingCart
 import androidx.compose.material.icons.filled.CloudSync
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -61,7 +70,7 @@ fun CatalogScreen(
     onSearchChange: (String) -> Unit,
     onCategoryChange: (ProductCategory) -> Unit,
     onExpressFilterChange: (Boolean) -> Unit,
-    onAddToCart: (Product) -> Unit,
+    onAddToCart: (Product, Int) -> Unit,
     onSyncWeb: () -> Unit = {},
     onDeleteProduct: (Product) -> Unit = {},
     snackbarHostState: SnackbarHostState,
@@ -70,6 +79,7 @@ fun CatalogScreen(
     val scope = rememberCoroutineScope()
     val addedMessage = stringResource(R.string.added_to_cart)
     val categoryScrollState = rememberScrollState()
+    var selectedProductForPurchase by remember { mutableStateOf<Product?>(null) }
 
     Column(
         modifier = modifier
@@ -224,8 +234,7 @@ fun CatalogScreen(
                         ProductItemCard(
                             product = product,
                             onAddToCart = {
-                                onAddToCart(product)
-                                scope.launch { snackbarHostState.showSnackbar(addedMessage) }
+                                selectedProductForPurchase = product
                             },
                             onDelete = { onDeleteProduct(product) }
                         )
@@ -240,8 +249,7 @@ fun CatalogScreen(
                         ProductItemCard(
                             product = product,
                             onAddToCart = {
-                                onAddToCart(product)
-                                scope.launch { snackbarHostState.showSnackbar(addedMessage) }
+                                selectedProductForPurchase = product
                             },
                             onDelete = { onDeleteProduct(product) }
                         )
@@ -249,6 +257,18 @@ fun CatalogScreen(
                 }
             }
         }
+    }
+
+    selectedProductForPurchase?.let { product ->
+        ProductPurchaseBottomSheet(
+            product = product,
+            onDismiss = { selectedProductForPurchase = null },
+            onConfirm = { quantity ->
+                onAddToCart(product, quantity)
+                selectedProductForPurchase = null
+                scope.launch { snackbarHostState.showSnackbar(addedMessage) }
+            }
+        )
     }
 }
 
@@ -288,18 +308,38 @@ fun ProductItemCard(
     ) {
         Column(modifier = Modifier.padding(14.dp)) {
             val isOnline = product.isRemote || product.name.contains("[En Línea]") || product.producerName.contains("[Web API]")
-            Surface(
-                shape = RoundedCornerShape(6.dp),
-                color = if (isOnline) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.secondaryContainer,
-                modifier = Modifier.padding(bottom = 6.dp)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 6.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = if (isOnline) stringResource(R.string.badge_online_api) else stringResource(R.string.badge_local_room),
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = if (isOnline) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSecondaryContainer,
-                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                )
+                Surface(
+                    shape = RoundedCornerShape(6.dp),
+                    color = if (isOnline) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.secondaryContainer
+                ) {
+                    Text(
+                        text = if (isOnline) stringResource(R.string.badge_online_api) else stringResource(R.string.badge_local_room),
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = if (isOnline) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSecondaryContainer,
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                    )
+                }
+
+                Surface(
+                    shape = RoundedCornerShape(6.dp),
+                    color = if (product.stock > 0) MaterialTheme.colorScheme.tertiaryContainer else MaterialTheme.colorScheme.errorContainer
+                ) {
+                    Text(
+                        text = if (product.stock > 0) stringResource(R.string.stock_available, product.stock) else stringResource(R.string.stock_out_of_stock),
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color = if (product.stock > 0) MaterialTheme.colorScheme.onTertiaryContainer else MaterialTheme.colorScheme.onErrorContainer,
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                    )
+                }
             }
 
             if (!product.imageUrl.isNullOrBlank()) {
@@ -376,7 +416,10 @@ fun ProductItemCard(
 
                     Spacer(modifier = Modifier.size(4.dp))
 
-                    Button(onClick = onAddToCart) {
+                    Button(
+                        onClick = onAddToCart,
+                        enabled = product.stock > 0 && product.inStock
+                    ) {
                         Icon(
                             Icons.Default.AddShoppingCart,
                             contentDescription = null,
@@ -385,6 +428,176 @@ fun ProductItemCard(
                         Text(text = stringResource(R.string.add_to_cart))
                     }
                 }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ProductPurchaseBottomSheet(
+    product: Product,
+    onDismiss: () -> Unit,
+    onConfirm: (Int) -> Unit
+) {
+    var quantity by remember { mutableStateOf(1) }
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp, vertical = 8.dp)
+                .padding(bottom = 28.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            if (!product.imageUrl.isNullOrBlank()) {
+                AsyncImage(
+                    model = product.imageUrl,
+                    contentDescription = product.name,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(180.dp)
+                        .clip(RoundedCornerShape(12.dp)),
+                    contentScale = ContentScale.Crop
+                )
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = product.name,
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = product.producerName,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = if (product.stock > 0) MaterialTheme.colorScheme.tertiaryContainer else MaterialTheme.colorScheme.errorContainer
+                ) {
+                    Text(
+                        text = if (product.stock > 0) stringResource(R.string.stock_available, product.stock) else stringResource(R.string.stock_out_of_stock),
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = if (product.stock > 0) MaterialTheme.colorScheme.onTertiaryContainer else MaterialTheme.colorScheme.onErrorContainer,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                    )
+                }
+            }
+
+            Text(
+                text = product.description,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Precio unitario:",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                Text(
+                    text = "\$${"%.2f".format(product.price)} MXN",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.secondary
+                )
+            }
+
+            // Selector de cantidad (+ / -)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = stringResource(R.string.quantity_to_buy),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold
+                )
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    FilledTonalButton(
+                        onClick = { if (quantity > 1) quantity-- },
+                        enabled = quantity > 1,
+                        modifier = Modifier.size(40.dp),
+                        contentPadding = PaddingValues(0.dp)
+                    ) {
+                        Icon(Icons.Default.Remove, contentDescription = "Menos")
+                    }
+
+                    Text(
+                        text = quantity.toString(),
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(horizontal = 8.dp)
+                    )
+
+                    FilledTonalButton(
+                        onClick = { if (quantity < product.stock) quantity++ },
+                        enabled = quantity < product.stock,
+                        modifier = Modifier.size(40.dp),
+                        contentPadding = PaddingValues(0.dp)
+                    ) {
+                        Icon(Icons.Default.Add, contentDescription = "Más")
+                    }
+                }
+            }
+
+            // Subtotal calculado
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = stringResource(R.string.subtotal_label),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = "\$${"%.2f".format(product.price * quantity)} MXN",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            Button(
+                onClick = { onConfirm(quantity) },
+                enabled = product.stock > 0 && quantity in 1..product.stock,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(
+                    Icons.Default.AddShoppingCart,
+                    contentDescription = null,
+                    modifier = Modifier.padding(end = 6.dp)
+                )
+                Text(
+                    text = stringResource(R.string.btn_confirm_add, quantity),
+                    fontWeight = FontWeight.Bold
+                )
             }
         }
     }

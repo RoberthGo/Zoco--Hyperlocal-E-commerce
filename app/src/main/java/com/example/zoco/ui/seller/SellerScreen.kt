@@ -1,5 +1,8 @@
 package com.example.zoco.ui.seller
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.graphics.Bitmap
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -21,6 +24,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddPhotoAlternate
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -37,15 +41,18 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import coil.compose.AsyncImage
 import com.example.zoco.R
 import com.example.zoco.domain.model.Product
 import com.example.zoco.domain.model.ProductCategory
 import com.example.zoco.ui.catalog.ProductItemCard
+import java.io.File
 
 @Composable
 fun SellerScreen(
@@ -53,6 +60,7 @@ fun SellerScreen(
     onNameChange: (String) -> Unit,
     onDescriptionChange: (String) -> Unit,
     onPriceChange: (String) -> Unit,
+    onStockChange: (String) -> Unit = {},
     onCategoryChange: (ProductCategory) -> Unit,
     onProducerNameChange: (String) -> Unit,
     onExpressChange: (Boolean) -> Unit,
@@ -82,6 +90,7 @@ fun SellerScreen(
                         onNameChange = onNameChange,
                         onDescriptionChange = onDescriptionChange,
                         onPriceChange = onPriceChange,
+                        onStockChange = onStockChange,
                         onCategoryChange = onCategoryChange,
                         onProducerNameChange = onProducerNameChange,
                         onExpressChange = onExpressChange,
@@ -115,6 +124,7 @@ fun SellerScreen(
                         name = uiState.name.ifBlank { stringResource(R.string.placeholder_product_name) },
                         description = uiState.description.ifBlank { stringResource(R.string.placeholder_description) },
                         price = uiState.price.toDoubleOrNull() ?: 0.0,
+                        stock = uiState.stock.toIntOrNull() ?: 10,
                         category = uiState.category,
                         producerName = uiState.producerName.ifBlank { stringResource(R.string.placeholder_producer_name) },
                         isExpressDelivery = uiState.isExpressDelivery,
@@ -142,6 +152,7 @@ fun SellerScreen(
                     onNameChange = onNameChange,
                     onDescriptionChange = onDescriptionChange,
                     onPriceChange = onPriceChange,
+                    onStockChange = onStockChange,
                     onCategoryChange = onCategoryChange,
                     onProducerNameChange = onProducerNameChange,
                     onExpressChange = onExpressChange,
@@ -159,6 +170,7 @@ private fun SellerFormContent(
     onNameChange: (String) -> Unit,
     onDescriptionChange: (String) -> Unit,
     onPriceChange: (String) -> Unit,
+    onStockChange: (String) -> Unit,
     onCategoryChange: (ProductCategory) -> Unit,
     onProducerNameChange: (String) -> Unit,
     onExpressChange: (Boolean) -> Unit,
@@ -224,6 +236,15 @@ private fun SellerFormContent(
     )
 
     OutlinedTextField(
+        value = uiState.stock,
+        onValueChange = onStockChange,
+        label = { Text(stringResource(R.string.product_stock_label)) },
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+        modifier = Modifier.fillMaxWidth(),
+        singleLine = true
+    )
+
+    OutlinedTextField(
         value = uiState.description,
         onValueChange = onDescriptionChange,
         label = { Text(stringResource(R.string.product_description_label)) },
@@ -270,23 +291,67 @@ private fun SellerFormContent(
         )
     }
 
-    // Selección de Foto / Multimedia (TASK-FINAL-05)
+    // Selección de Foto / Multimedia (Galería o Cámara)
+    val context = LocalContext.current
+
     val imagePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         onImageUriChange(uri?.toString())
     }
 
-    OutlinedButton(
-        onClick = { imagePickerLauncher.launch("image/*") },
-        modifier = Modifier.fillMaxWidth()
+    val cameraLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicturePreview()
+    ) { bitmap: Bitmap? ->
+        if (bitmap != null) {
+            val file = File(context.cacheDir, "product_photo_${System.currentTimeMillis()}.jpg")
+            file.outputStream().use { out ->
+                bitmap.compress(Bitmap.CompressFormat.JPEG, 92, out)
+            }
+            onImageUriChange(Uri.fromFile(file).toString())
+        }
+    }
+
+    val cameraPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            cameraLauncher.launch(null)
+        }
+    }
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        Icon(Icons.Default.AddPhotoAlternate, contentDescription = null)
-        Spacer(modifier = Modifier.size(8.dp))
-        Text(
-            if (uiState.imageUri == null) stringResource(R.string.btn_select_image)
-            else stringResource(R.string.btn_change_image)
-        )
+        OutlinedButton(
+            onClick = { imagePickerLauncher.launch("image/*") },
+            modifier = Modifier.weight(1f)
+        ) {
+            Icon(Icons.Default.AddPhotoAlternate, contentDescription = null)
+            Spacer(modifier = Modifier.size(6.dp))
+            Text(stringResource(R.string.btn_select_gallery))
+        }
+
+        OutlinedButton(
+            onClick = {
+                val hasPermission = ContextCompat.checkSelfPermission(
+                    context,
+                    Manifest.permission.CAMERA
+                ) == PackageManager.PERMISSION_GRANTED
+
+                if (hasPermission) {
+                    cameraLauncher.launch(null)
+                } else {
+                    cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+                }
+            },
+            modifier = Modifier.weight(1f)
+        ) {
+            Icon(Icons.Default.PhotoCamera, contentDescription = null)
+            Spacer(modifier = Modifier.size(6.dp))
+            Text(stringResource(R.string.btn_take_photo))
+        }
     }
 
     if (!uiState.imageUri.isNullOrBlank()) {

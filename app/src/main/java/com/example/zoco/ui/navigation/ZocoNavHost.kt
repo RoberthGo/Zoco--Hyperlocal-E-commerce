@@ -44,7 +44,7 @@ fun ZocoNavHost(
                 onSearchChange = catalogViewModel::onSearchQueryChanged,
                 onCategoryChange = catalogViewModel::onCategorySelected,
                 onExpressFilterChange = catalogViewModel::onExpressFilterToggled,
-                onAddToCart = cartViewModel::addProduct,
+                onAddToCart = { product, quantity -> cartViewModel.addProduct(product, quantity) },
                 onSyncWeb = catalogViewModel::syncFromWeb,
                 onDeleteProduct = catalogViewModel::deleteProduct,
                 snackbarHostState = snackbarHostState
@@ -71,6 +71,7 @@ fun ZocoNavHost(
                 onNameChange = sellerViewModel::onNameChanged,
                 onDescriptionChange = sellerViewModel::onDescriptionChanged,
                 onPriceChange = sellerViewModel::onPriceChanged,
+                onStockChange = sellerViewModel::onStockChanged,
                 onCategoryChange = sellerViewModel::onCategoryChanged,
                 onProducerNameChange = sellerViewModel::onProducerNameChanged,
                 onExpressChange = sellerViewModel::onExpressChanged,
@@ -82,6 +83,8 @@ fun ZocoNavHost(
         composable(route = Screen.PROFILE.route) {
             ProfileScreen(
                 uiState = profileState,
+                onUpdatePhoto = profileViewModel::updatePhoto,
+                onUpdateName = profileViewModel::updateName,
                 onLanguageChange = profileViewModel::setLanguage,
                 onApiUrlChange = profileViewModel::updateApiUrl,
                 onCheckConnection = profileViewModel::checkConnection

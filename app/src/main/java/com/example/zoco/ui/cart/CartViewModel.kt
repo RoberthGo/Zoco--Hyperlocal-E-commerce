@@ -71,19 +71,31 @@ class CartViewModel(
         }
     }
 
-    fun addProduct(product: Product) {
+    fun addProduct(product: Product, quantityToAdd: Int = 1): Boolean {
+        if (quantityToAdd <= 0) return false
+        var success = true
         _uiState.update { current ->
             val existingIndex = current.items.indexOfFirst { it.product.id == product.id }
+            val currentQty = if (existingIndex >= 0) current.items[existingIndex].quantity else 0
+            val targetQty = currentQty + quantityToAdd
+
+            // Validación estricta: No permitir rebasar el stock disponible
+            if (product.stock > 0 && targetQty > product.stock) {
+                success = false
+                return@update current
+            }
+
             val updatedItems = if (existingIndex >= 0) {
                 current.items.toMutableList().apply {
                     val existing = this[existingIndex]
-                    this[existingIndex] = existing.copy(quantity = existing.quantity + 1)
+                    this[existingIndex] = existing.copy(quantity = targetQty)
                 }
             } else {
-                current.items + CartItem(product = product, quantity = 1)
+                current.items + CartItem(product = product, quantity = targetQty)
             }
             current.copy(items = updatedItems, orderCompletedMessage = null)
         }
+        return success
     }
 
     fun removeProduct(product: Product) {

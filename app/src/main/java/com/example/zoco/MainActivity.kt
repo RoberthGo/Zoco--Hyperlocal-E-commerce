@@ -63,6 +63,7 @@ class MainActivity : ComponentActivity() {
         val viewModelFactory = ViewModelFactory(
             productRepository = app.productRepository,
             orderRepository = app.orderRepository,
+            userProfileRepository = app.userProfileRepository,
             sharedPreferences = prefs
         )
 
@@ -124,9 +125,19 @@ fun ZocoApp(
         }
     }
 
-    CompositionLocalProvider(
+    val activityResultOwner = androidx.activity.compose.LocalActivityResultRegistryOwner.current
+        ?: (currentContext as? androidx.activity.result.ActivityResultRegistryOwner)
+
+    val providers = mutableListOf<androidx.compose.runtime.ProvidedValue<*>>(
         LocalConfiguration provides localizedConfig,
         LocalContext provides localizedContext
+    )
+    if (activityResultOwner != null) {
+        providers.add(androidx.activity.compose.LocalActivityResultRegistryOwner provides activityResultOwner)
+    }
+
+    CompositionLocalProvider(
+        *providers.toTypedArray()
     ) {
         BoxWithConstraints(modifier = modifier.fillMaxSize()) {
             val isWideScreen = maxWidth >= 600.dp

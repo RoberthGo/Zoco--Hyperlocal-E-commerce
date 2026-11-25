@@ -18,5 +18,6 @@ data class Product(
     val isExpressDelivery: Boolean = false,
     val inStock: Boolean = true,
     val isRemote: Boolean = false,
-    val imageUrl: String? = null
+    val imageUrl: String? = null,
+    val stock: Int = 10
 )

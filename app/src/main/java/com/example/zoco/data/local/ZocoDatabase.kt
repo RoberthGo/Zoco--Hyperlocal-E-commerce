@@ -10,9 +10,10 @@ import androidx.room.RoomDatabase
         ProductEntity::class,
         NotificationEntity::class,
         MediaEntity::class,
-        OrderEntity::class
+        OrderEntity::class,
+        UserProfileEntity::class
     ],
-    version = 4,
+    version = 6,
     exportSchema = false
 )
 abstract class ZocoDatabase : RoomDatabase() {
@@ -20,6 +21,7 @@ abstract class ZocoDatabase : RoomDatabase() {
     abstract fun notificationDao(): NotificationDao
     abstract fun mediaDao(): MediaDao
     abstract fun orderDao(): OrderDao
+    abstract fun userProfileDao(): UserProfileDao
 
     companion object {
         @Volatile

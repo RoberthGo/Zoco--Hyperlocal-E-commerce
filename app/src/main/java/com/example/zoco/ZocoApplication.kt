@@ -5,8 +5,10 @@ import com.example.zoco.data.local.ZocoDatabase
 import com.example.zoco.data.remote.RetrofitClient
 import com.example.zoco.data.repository.OrderRepositoryImpl
 import com.example.zoco.data.repository.ProductRepositoryImpl
+import com.example.zoco.data.repository.UserProfileRepositoryImpl
 import com.example.zoco.domain.repository.OrderRepository
 import com.example.zoco.domain.repository.ProductRepository
+import com.example.zoco.domain.repository.UserProfileRepository
 
 class ZocoApplication : Application() {
 
@@ -24,6 +26,12 @@ class ZocoApplication : Application() {
     val orderRepository: OrderRepository by lazy {
         OrderRepositoryImpl(
             orderDao = database.orderDao()
+        )
+    }
+
+    val userProfileRepository: UserProfileRepository by lazy {
+        UserProfileRepositoryImpl(
+            userProfileDao = database.userProfileDao()
         )
     }
 

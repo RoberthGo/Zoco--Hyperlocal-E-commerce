@@ -73,6 +73,20 @@
     <string name="btn_select_image">Seleccionar Foto / Multimedia</string>
     <string name="btn_change_image">Cambiar Foto</string>
     <string name="btn_remove_image">Eliminar foto seleccionada</string>
+    <string name="btn_take_photo">Tomar Foto</string>
+    <string name="btn_select_gallery">Galería</string>
+    <string name="btn_change_profile_photo">Editar Foto</string>
+    <string name="btn_edit_profile">Editar Perfil</string>
+    <string name="dialog_edit_name">Nombre de Usuario</string>
+    <string name="dialog_save">Guardar</string>
+    <string name="dialog_cancel">Cancelar</string>
+    <string name="product_stock_label">Unidades disponibles (Stock)</string>
+    <string name="stock_available">%d disponibles</string>
+    <string name="stock_out_of_stock">Agotado</string>
+    <string name="quantity_to_buy">Cantidad a comprar</string>
+    <string name="subtotal_label">Subtotal:</string>
+    <string name="btn_confirm_add">Agregar al carrito (%d unidades)</string>
+    <string name="seller_stock_error">Ingresa una cantidad de stock válida mayor a 0</string>
 
     <!-- Profile Screen -->
     <string name="profile_title">Perfil de Usuario</string>

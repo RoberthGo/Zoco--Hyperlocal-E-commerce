@@ -81,7 +81,7 @@ class SellerViewModelTest {
         viewModel.onImageUriChanged("content://media/external/images/media/42")
 
         viewModel.saveProduct()
-        testDispatcher.scheduler.advanceUntilIdle()
+        testDispatcher.scheduler.advanceTimeBy(500)
 
         assertTrue(viewModel.uiState.value.isSavedSuccess)
         assertEquals(1, fakeRepo.insertedProducts.size)
@@ -92,5 +92,9 @@ class SellerViewModelTest {
         assertEquals(ProductCategory.PRODUCE, saved.category)
         assertTrue(saved.isExpressDelivery)
         assertEquals("content://media/external/images/media/42", saved.imageUrl)
+
+        // Luego de 2 segundos el mensaje de éxito se limpia automáticamente
+        testDispatcher.scheduler.advanceTimeBy(2000)
+        assertEquals(false, viewModel.uiState.value.isSavedSuccess)
     }
 }

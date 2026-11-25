@@ -237,7 +237,8 @@ class ProductRepositoryImpl(
                     producerName = "Panadería San José [Local Offline]",
                     isExpressDelivery = true,
                     inStock = true,
-                    isRemote = false
+                    isRemote = false,
+                    stock = 15
                 ),
                 ProductEntity(
                     id = 102,
@@ -248,7 +249,8 @@ class ProductRepositoryImpl(
                     producerName = "Apícola Los Sauces [Local Offline]",
                     isExpressDelivery = true,
                     inStock = true,
-                    isRemote = false
+                    isRemote = false,
+                    stock = 8
                 ),
                 ProductEntity(
                     id = 103,
@@ -259,7 +261,8 @@ class ProductRepositoryImpl(
                     producerName = "Rancho San Antonio [Local Offline]",
                     isExpressDelivery = false,
                     inStock = true,
-                    isRemote = false
+                    isRemote = false,
+                    stock = 12
                 ),
                 ProductEntity(
                     id = 104,
@@ -270,7 +273,8 @@ class ProductRepositoryImpl(
                     producerName = "Artesanías El Roble [Local Offline]",
                     isExpressDelivery = false,
                     inStock = true,
-                    isRemote = false
+                    isRemote = false,
+                    stock = 5
                 ),
                 ProductEntity(
                     id = 105,
@@ -281,7 +285,8 @@ class ProductRepositoryImpl(
                     producerName = "Huerta La Cañada [Local Offline]",
                     isExpressDelivery = true,
                     inStock = true,
-                    isRemote = false
+                    isRemote = false,
+                    stock = 20
                 )
             )
             productDao.insertProducts(initialProducts)

@@ -3,6 +3,7 @@ package com.example.zoco.data.remote
 import com.example.zoco.data.remote.api.NotificationApiService
 import com.example.zoco.data.remote.api.OrderApiService
 import com.example.zoco.data.remote.api.ProductApiService
+import com.example.zoco.data.remote.api.UserProfileApiService
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import okhttp3.OkHttpClient
@@ -66,6 +67,10 @@ object RetrofitClient {
     var notificationApiService: NotificationApiService = retrofitInstance.create(NotificationApiService::class.java)
         private set
 
+    @Volatile
+    var userProfileApiService: UserProfileApiService = retrofitInstance.create(UserProfileApiService::class.java)
+        private set
+
     fun createRetrofit(baseUrl: String): Retrofit {
         val safeUrl = if (baseUrl.endsWith("/")) baseUrl else "$baseUrl/"
         return Retrofit.Builder()
@@ -85,6 +90,7 @@ object RetrofitClient {
         productApiService = retrofitInstance.create(ProductApiService::class.java)
         orderApiService = retrofitInstance.create(OrderApiService::class.java)
         notificationApiService = retrofitInstance.create(NotificationApiService::class.java)
+        userProfileApiService = retrofitInstance.create(UserProfileApiService::class.java)
     }
 
     /**

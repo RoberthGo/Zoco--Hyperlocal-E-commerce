@@ -16,7 +16,8 @@ data class ProductEntity(
     val producerName: String,
     val isExpressDelivery: Boolean,
     val inStock: Boolean,
-    val isRemote: Boolean = false
+    val isRemote: Boolean = false,
+    val stock: Int = 10
 ) {
     fun toDomain(imageUrl: String? = null): Product {
         val cat = runCatching { ProductCategory.valueOf(category) }.getOrDefault(ProductCategory.ALL)
@@ -28,9 +29,10 @@ data class ProductEntity(
             category = cat,
             producerName = producerName,
             isExpressDelivery = isExpressDelivery,
-            inStock = inStock,
+            inStock = inStock && stock > 0,
             isRemote = isRemote,
-            imageUrl = imageUrl
+            imageUrl = imageUrl,
+            stock = stock
         )
     }
 
@@ -44,8 +46,9 @@ data class ProductEntity(
                 category = product.category.name,
                 producerName = product.producerName,
                 isExpressDelivery = product.isExpressDelivery,
-                inStock = product.inStock,
-                isRemote = product.isRemote
+                inStock = product.inStock && product.stock > 0,
+                isRemote = product.isRemote,
+                stock = product.stock
             )
         }
     }
