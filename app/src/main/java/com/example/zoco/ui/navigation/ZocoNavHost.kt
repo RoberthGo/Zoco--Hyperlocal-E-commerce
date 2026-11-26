@@ -103,12 +103,8 @@ fun ZocoNavHost(
                 onUpdatePhoto = profileViewModel::updatePhoto,
                 onUpdateName = profileViewModel::updateName,
                 onLanguageChange = profileViewModel::setLanguage,
-                onApiUrlChange = profileViewModel::updateApiUrl,
-                onCheckConnection = profileViewModel::checkConnection,
-                onQuickSwitchRole = profileViewModel::quickSwitchRole,
-                onLogin = profileViewModel::login,
-                onRegister = profileViewModel::register,
-                onBecomeSeller = profileViewModel::becomeSeller
+                onBecomeSeller = profileViewModel::becomeSeller,
+                onLogout = profileViewModel::logout
             )
         }
     }

@@ -19,6 +19,9 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.ResponseBody.Companion.toResponseBody
+import retrofit2.HttpException
 import retrofit2.Response
 import java.io.IOException
 
@@ -31,7 +34,14 @@ class RolesAndPermissionsTest {
                 PredefinedUsers.BUYER,
                 PredefinedUsers.SELLER,
                 PredefinedUsers.ADMIN
-            ).first { it.session.username == request.username }
+            ).firstOrNull { it.session.username == request.username && it.password == request.password }
+                ?: throw HttpException(
+                    Response.error<Any>(
+                        400,
+                        "{\"detail\":[\"Credenciales inválidas o usuario inactivo.\"]}"
+                            .toResponseBody("application/json".toMediaType())
+                    )
+                )
             return AuthResponseDto(
                 token = "token_${preset.session.username}",
                 user = UserDto(
@@ -47,8 +57,11 @@ class RolesAndPermissionsTest {
             )
         }
 
+        var lastRegisterRole: String? = null
+
         override suspend fun register(request: RegisterRequestDto): AuthResponseDto {
             if (offline) throw IOException("offline")
+            lastRegisterRole = request.role
             return AuthResponseDto(
                 token = "token_reg",
                 user = UserDto(
@@ -56,12 +69,13 @@ class RolesAndPermissionsTest {
                     username = request.username,
                     email = request.email,
                     firstName = request.firstName,
-                    role = request.role
+                    role = "BUYER"
                 )
             )
         }
 
         override suspend fun logout(): Response<Unit> = Response.success(Unit)
+        override suspend fun uploadAvatar(image: okhttp3.MultipartBody.Part): com.example.zoco.data.remote.dto.AvatarResponseDto = error("no usado")
 
         override suspend fun becomeSeller(request: BecomeSellerRequestDto): BecomeSellerResponseDto {
             if (offline) throw IOException("offline")
@@ -149,31 +163,98 @@ class RolesAndPermissionsTest {
     }
 
     @Test
-    fun quickSwitch_and_becomeSeller_workOnlineAndOffline() = runTest {
-        val sessionManager = SessionManager(prefs = null)
-        val fakeApi = FakeAuthApiService(offline = false)
-        val repo = AuthRepositoryImpl(sessionManager, fakeApi)
+    fun startsLoggedOut_untilLoginSucceeds() = runTest {
+        val repo = AuthRepositoryImpl(SessionManager(prefs = null), FakeAuthApiService())
 
-        // Inicia como BUYER
+        assertFalse(repo.sessionFlow.value.isLoggedIn)
+
+        val bad = repo.login("laura_compradora", "mala")
+        assertTrue(bad.isFailure)
+        assertEquals("Credenciales inválidas o usuario inactivo.", bad.exceptionOrNull()?.message)
+        assertFalse(repo.sessionFlow.value.isLoggedIn)
+
+        assertTrue(repo.login("laura_compradora", "zoco123").isSuccess)
+        assertTrue(repo.sessionFlow.value.isLoggedIn)
         assertEquals(UserRole.BUYER, repo.sessionFlow.value.role)
-        assertEquals("laura_compradora", repo.sessionFlow.value.username)
+    }
 
-        // Convertirse en Vendedor con nombre de negocio
-        val upgradeResult = repo.becomeSeller("Dulcería Laura")
-        assertTrue(upgradeResult.isSuccess)
+    @Test
+    fun register_alwaysCreatesBuyer_andNeverSendsAdminRole() = runTest {
+        val api = FakeAuthApiService()
+        val repo = AuthRepositoryImpl(SessionManager(prefs = null), api)
+
+        val result = repo.register("nuevo", "nuevo@mail.com", "secreto1", "Nuevo Usuario")
+
+        assertTrue(result.isSuccess)
+        assertEquals("BUYER", api.lastRegisterRole)
+        assertEquals(UserRole.BUYER, repo.sessionFlow.value.role)
+    }
+
+    @Test
+    fun register_offline_failsWithoutCreatingLocalAccount() = runTest {
+        val repo = AuthRepositoryImpl(SessionManager(prefs = null), FakeAuthApiService(offline = true))
+
+        val result = repo.register("nuevo", "nuevo@mail.com", "secreto1", "Nuevo Usuario")
+
+        assertTrue(result.isFailure)
+        assertFalse(repo.sessionFlow.value.isLoggedIn)
+    }
+
+    @Test
+    fun buyerBecomesSeller_onlyThroughApi() = runTest {
+        val api = FakeAuthApiService()
+        val repo = AuthRepositoryImpl(SessionManager(prefs = null), api)
+
+        // Sin sesión no se puede
+        assertTrue(repo.becomeSeller("Dulcería Laura").isFailure)
+
+        repo.login("laura_compradora", "zoco123")
+        assertTrue(repo.becomeSeller("Dulcería Laura").isSuccess)
         assertEquals(UserRole.SELLER, repo.sessionFlow.value.role)
         assertEquals("Dulcería Laura", repo.sessionFlow.value.producerName)
 
-        // Cambio rápido a Admin (offline fallback también funciona)
-        fakeApi.offline = true
-        val adminSwitch = repo.quickSwitch(UserRole.ADMIN)
-        assertTrue(adminSwitch.isSuccess)
-        assertEquals(UserRole.ADMIN, repo.sessionFlow.value.role)
-        assertEquals("admin", repo.sessionFlow.value.username)
+        // Un vendedor ya no puede volver a "convertirse"
+        assertTrue(repo.becomeSeller("Otro").isFailure)
+    }
 
-        // Admin cambia rol de usuario localmente aunque esté offline
-        assertTrue(repo.updateUserRole(PredefinedUsers.BUYER.session.userId, UserRole.SELLER))
-        val updatedBuyer = repo.usersFlow.value.first { it.username == "laura_compradora" }
-        assertEquals(UserRole.SELLER, updatedBuyer.role)
+    @Test
+    fun becomeSeller_offline_doesNotChangeRoleLocally() = runTest {
+        val api = FakeAuthApiService()
+        val repo = AuthRepositoryImpl(SessionManager(prefs = null), api)
+        repo.login("laura_compradora", "zoco123")
+
+        api.offline = true
+        val result = repo.becomeSeller("Dulcería Laura")
+
+        assertTrue(result.isFailure)
+        assertEquals(UserRole.BUYER, repo.sessionFlow.value.role)
+    }
+
+    @Test
+    fun adminOnlyByLogin_andRoleChangeNeedsApi() = runTest {
+        val api = FakeAuthApiService()
+        val repo = AuthRepositoryImpl(SessionManager(prefs = null), api)
+
+        assertTrue(repo.login("admin", "admin123").isSuccess)
+        assertEquals(UserRole.ADMIN, repo.sessionFlow.value.role)
+        assertTrue(repo.usersFlow.value.isNotEmpty())
+
+        api.offline = true
+        assertFalse(repo.updateUserRole(PredefinedUsers.BUYER.session.userId, UserRole.SELLER))
+        val buyer = repo.usersFlow.value.first { it.username == "laura_compradora" }
+        assertEquals(UserRole.BUYER, buyer.role)
+    }
+
+    @Test
+    fun logout_clearsSession() = runTest {
+        val sessionManager = SessionManager(prefs = null)
+        val repo = AuthRepositoryImpl(sessionManager, FakeAuthApiService())
+        repo.login("admin", "admin123")
+
+        repo.logout()
+
+        assertFalse(repo.sessionFlow.value.isLoggedIn)
+        assertEquals(null, SessionManager.activeToken)
+        assertTrue(repo.usersFlow.value.isEmpty())
     }
 }

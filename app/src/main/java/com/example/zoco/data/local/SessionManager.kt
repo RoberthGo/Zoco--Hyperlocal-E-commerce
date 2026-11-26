@@ -2,7 +2,6 @@ package com.example.zoco.data.local
 
 import android.content.SharedPreferences
 import com.example.zoco.domain.model.ManagedUser
-import com.example.zoco.domain.model.PredefinedUsers
 import com.example.zoco.domain.model.UserRole
 import com.example.zoco.domain.model.UserSession
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -10,13 +9,23 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 
+/**
+ * Guarda quién ha iniciado sesión (usuario, rol, token, foto) y lo recuerda aunque se cierre la app.
+ *
+ * Cómo se usa:
+ *  - [sessionFlow] es la sesión actual; las pantallas la observan y se actualizan solas.
+ *  - Si nadie ha iniciado sesión, vale [UserSession.LOGGED_OUT] y la app muestra el login.
+ *  - [activeToken] es una copia del token en una variable estática: [RetrofitClient] la lee en cada
+ *    petición para identificarse ante el servidor. Se actualiza en [saveSession] y [clearSession].
+ *  - [usersFlow] es la lista de usuarios que solo ve el administrador (viene del servidor).
+ */
 class SessionManager(
     private val prefs: SharedPreferences? = null
 ) {
     private val _sessionFlow = MutableStateFlow(loadInitialSession())
     val sessionFlow: StateFlow<UserSession> = _sessionFlow.asStateFlow()
 
-    private val _usersFlow = MutableStateFlow(PredefinedUsers.ALL_MANAGED_USERS)
+    private val _usersFlow = MutableStateFlow<List<ManagedUser>>(emptyList())
     val usersFlow: StateFlow<List<ManagedUser>> = _usersFlow.asStateFlow()
 
     init {
@@ -25,23 +34,41 @@ class SessionManager(
 
     private fun loadInitialSession(): UserSession {
         val savedUsername = prefs?.getString(KEY_USERNAME, null)
-        if (savedUsername.isNullOrBlank()) {
-            return PredefinedUsers.BUYER.session
+        val savedToken = prefs?.getString(KEY_TOKEN, null)
+        if (savedUsername.isNullOrBlank() || savedToken.isNullOrBlank()) {
+            return UserSession.LOGGED_OUT
         }
         return UserSession(
-            userId = prefs.getLong(KEY_USER_ID, PredefinedUsers.BUYER.session.userId),
+            userId = prefs.getLong(KEY_USER_ID, 0L),
             username = savedUsername,
-            fullName = prefs.getString(KEY_FULL_NAME, PredefinedUsers.BUYER.session.fullName)
-                ?: PredefinedUsers.BUYER.session.fullName,
-            email = prefs.getString(KEY_EMAIL, PredefinedUsers.BUYER.session.email)
-                ?: PredefinedUsers.BUYER.session.email,
+            fullName = prefs.getString(KEY_FULL_NAME, "") ?: "",
+            email = prefs.getString(KEY_EMAIL, "") ?: "",
             role = UserRole.fromString(prefs.getString(KEY_ROLE, UserRole.BUYER.name)),
             phone = prefs.getString(KEY_PHONE, "") ?: "",
             address = prefs.getString(KEY_ADDRESS, "") ?: "",
             producerName = prefs.getString(KEY_PRODUCER_NAME, "") ?: "",
-            token = prefs.getString(KEY_TOKEN, null),
+            token = savedToken,
             photoUri = prefs.getString(KEY_PHOTO_URI, null)
         )
+    }
+
+    fun clearSession() {
+        activeToken = null
+        _sessionFlow.value = UserSession.LOGGED_OUT
+        _usersFlow.value = emptyList()
+        prefs?.edit()?.apply {
+            remove(KEY_USER_ID)
+            remove(KEY_USERNAME)
+            remove(KEY_FULL_NAME)
+            remove(KEY_EMAIL)
+            remove(KEY_ROLE)
+            remove(KEY_PHONE)
+            remove(KEY_ADDRESS)
+            remove(KEY_PRODUCER_NAME)
+            remove(KEY_TOKEN)
+            remove(KEY_PHOTO_URI)
+            apply()
+        }
     }
 
     fun saveSession(session: UserSession) {

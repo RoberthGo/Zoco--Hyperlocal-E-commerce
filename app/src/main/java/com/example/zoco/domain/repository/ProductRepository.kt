@@ -4,6 +4,11 @@ import com.example.zoco.domain.model.Product
 import com.example.zoco.domain.model.ProductCategory
 import kotlinx.coroutines.flow.Flow
 
+/**
+ * Productos del catálogo. La pantalla siempre lee de la base local (rápida y funciona sin internet);
+ * el repositorio se encarga de descargar del servidor ([syncProductsFromRemote]) y de subir lo que
+ * se creó sin conexión ([pushPending]).
+ */
 interface ProductRepository {
     fun getProducts(): Flow<List<Product>>
     fun getProductsFiltered(query: String, category: ProductCategory, expressOnly: Boolean): Flow<List<Product>>

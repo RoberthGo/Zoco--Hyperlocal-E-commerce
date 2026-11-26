@@ -1,7 +1,9 @@
 package com.example.zoco.data.repository
 
 import android.util.Log
+import com.example.zoco.data.local.ImageStore
 import com.example.zoco.data.local.MediaDao
+import com.example.zoco.data.local.SampleData
 import com.example.zoco.data.local.MediaEntity
 import com.example.zoco.data.local.ProductDao
 import com.example.zoco.data.local.ProductEntity
@@ -16,19 +18,28 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.MultipartBody
+import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.IOException
 
 /**
- * Repositorio híbrido (Single Source of Truth con Room + Retrofit + MediaDao).
- * La base de datos local SQLite (Room) es la fuente inmediata de la verdad para la UI.
- * Las operaciones intentan sincronizar con la API remota de forma protegida para no
- * interrumpir la ejecución si el servidor aún no está desplegado o no hay conexión.
+ * Implementación de [ProductRepository]. Funciona "primero local":
+ *  1. La pantalla siempre lee de la base local (Room), así el catálogo carga al instante y sirve sin internet.
+ *  2. Al crear o editar un producto se guarda en Room marcado como "pendiente" y se intenta subir al servidor.
+ *     Si no hay red, [SyncPendingWorker] lo reintenta solo cuando vuelva la conexión.
+ *  3. Las fotos se guardan como archivo local y se suben aparte ([uploadPendingImage]); al terminar,
+ *     la ruta local se reemplaza por la URL del servidor para que todos las vean.
+ *  4. Al sincronizar, los productos del servidor reemplazan a los que vinieron de él antes
+ *     (pero nunca a los que tienen cambios sin subir). Si el servidor no responde, esos productos
+ *     "de servidor" se quitan de la lista para no mostrar datos que podrían estar desactualizados.
  */
 class ProductRepositoryImpl(
     private val productDao: ProductDao,
     private val customApiService: ProductApiService? = null,
     private val mediaDao: MediaDao? = null,
-    private val syncScheduler: SyncScheduler? = null
+    private val syncScheduler: SyncScheduler? = null,
+    private val imageStore: ImageStore? = null
 ) : ProductRepository {
 
     private val productApiService: ProductApiService
@@ -84,13 +95,14 @@ class ProductRepositoryImpl(
             ProductEntity.fromDomain(product).copy(isRemote = false, pendingSync = true)
         )
 
-        // 2. Guardar multimedia en MediaDao si se proporcionó URI
+        // 2. Guardar multimedia en MediaDao si se proporcionó URI (copia propia, reducida, lista para subir)
         if (!mediaUri.isNullOrBlank() && mediaDao != null) {
             try {
+                val storedUri = imageStore?.saveLocalCopy(mediaUri) ?: mediaUri
                 mediaDao.insertMedia(
                     MediaEntity(
                         productId = localId,
-                        uri = mediaUri,
+                        uri = storedUri,
                         mediaType = "IMAGE",
                         description = product.name
                     )
@@ -103,7 +115,7 @@ class ProductRepositoryImpl(
 
         // 3. CONEXIÓN WEB API: intentar subirlo ya; si falla queda pendiente y WorkManager
         //    lo reintenta en cuanto haya red (ver SyncPendingWorker).
-        pushNowOrSchedule(localId)
+        uploadOrRetryLater(localId)
 
         return localId
     }
@@ -124,31 +136,34 @@ class ProductRepositoryImpl(
 
         if (!product.imageUrl.isNullOrBlank() && mediaDao != null) {
             try {
+                val storedUri = imageStore?.saveLocalCopy(product.imageUrl) ?: product.imageUrl
                 mediaDao.deleteMediaByProductId(product.id)
                 mediaDao.insertMedia(
                     MediaEntity(
                         productId = product.id,
-                        uri = product.imageUrl,
+                        uri = storedUri,
                         mediaType = "IMAGE",
                         description = product.name
                     )
                 )
-            } catch (_: Exception) {}
+            } catch (_: Exception) {
+            // No se pudo limpiar la multimedia local: no es grave, se limpiará en la siguiente sincronización
+        }
         }
 
         // 2. CONEXIÓN WEB API: PUT (o POST si nunca se había subido); si falla, queda en la cola
         if (rowsAffected > 0) {
-            pushNowOrSchedule(product.id)
+            uploadOrRetryLater(product.id)
         }
 
         return rowsAffected > 0
     }
 
     /** Intenta subir un producto ahora mismo; si no se puede, agenda el reintento en segundo plano. */
-    private suspend fun pushNowOrSchedule(productId: Long) {
+    private suspend fun uploadOrRetryLater(productId: Long) {
         val entity = productDao.getProductById(productId) ?: return
         try {
-            pushOne(entity)
+            uploadProduct(entity)
         } catch (e: Exception) {
             Log.w(TAG, "Sin conexión con la API; producto id=$productId queda pendiente: ${e.message}")
             syncScheduler?.scheduleSync()
@@ -161,10 +176,12 @@ class ProductRepositoryImpl(
      *   que devuelve el servidor (id del servidor, isRemote = true) re-asociando su multimedia.
      * - Ya existe en el servidor (isRemote = true): PUT y se limpia la marca de pendiente.
      */
-    private suspend fun pushOne(entity: ProductEntity) {
+    private suspend fun uploadProduct(entity: ProductEntity) {
         val dto = ProductDto.fromDomain(entity.toDomain())
         if (entity.isRemote) {
             productApiService.updateProduct(entity.id, dto)
+            // Si falla la subida de la foto se lanza la excepción y el producto sigue pendiente
+            uploadPendingImage(entity.id)
             productDao.insertProduct(entity.copy(pendingSync = false))
             Log.d(TAG, "Edición subida a la Web API: id=${entity.id}")
         } else {
@@ -178,9 +195,69 @@ class ProductRepositoryImpl(
             if (serverEntity.id != entity.id) {
                 try {
                     mediaDao?.reassignMedia(entity.id, serverEntity.id)
-                } catch (_: Exception) {}
+                } catch (_: Exception) {
+            // No se pudo limpiar la multimedia local: no es grave, se limpiará en la siguiente sincronización
+        }
+            }
+            try {
+                uploadPendingImage(serverEntity.id)
+            } catch (e: Exception) {
+                // El producto ya existe en el servidor, pero falta la foto: queda pendiente para reintentar
+                productDao.insertProduct(serverEntity.copy(pendingSync = true))
+                throw e
             }
             Log.d(TAG, "Producto subido a la Web API: id local=${entity.id} -> id servidor=${serverEntity.id}")
+        }
+    }
+
+    /**
+     * Sube al servidor la foto local del producto (si la hay) y la reemplaza por la URL del servidor,
+     * para que todos los usuarios la vean. Lanza excepción si falla la red o el servidor.
+     */
+    private suspend fun uploadPendingImage(productId: Long) {
+        val dao = mediaDao ?: return
+        val store = imageStore ?: return
+        val local = dao.getMediaByProductId(productId).first()
+            .firstOrNull { !ImageStore.isRemote(it.uri) } ?: return
+
+        val bytes = store.readBytes(local.uri)
+        if (bytes == null) {
+            // El archivo ya no existe: se descarta para no reintentar eternamente
+            dao.deleteMedia(local)
+            return
+        }
+        val part = MultipartBody.Part.createFormData(
+            "image", "photo.jpg", bytes.toRequestBody("image/jpeg".toMediaType())
+        )
+        val updated = productApiService.uploadImage(productId, part)
+        dao.deleteMediaByProductId(productId)
+        val remoteUrl = updated.imageUrl
+        if (!remoteUrl.isNullOrBlank()) {
+            dao.insertMedia(
+                MediaEntity(productId = productId, uri = remoteUrl, mediaType = "IMAGE", description = local.description)
+            )
+        }
+        Log.d(TAG, "Foto subida al servidor para producto id=$productId")
+    }
+
+    /** Guarda en local las URLs de fotos que vienen del servidor (salvo productos con cambios sin subir). */
+    private suspend fun syncRemoteImages(remoteProducts: List<ProductDto>, skipIds: Set<Long>) {
+        val dao = mediaDao ?: return
+        try {
+            val existing = dao.getAllMedia().first()
+            for (dto in remoteProducts) {
+                if (dto.id in skipIds) continue
+                val url = dto.imageUrl
+                val current = existing.filter { it.productId == dto.id }
+                if (current.size == 1 && current[0].uri == url) continue
+                if (current.isEmpty() && url.isNullOrBlank()) continue
+                dao.deleteMediaByProductId(dto.id)
+                if (!url.isNullOrBlank()) {
+                    dao.insertMedia(MediaEntity(productId = dto.id, uri = url, mediaType = "IMAGE", description = dto.name))
+                }
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "No se pudieron sincronizar las fotos: ${e.message}")
         }
     }
 
@@ -193,7 +270,7 @@ class ProductRepositoryImpl(
         var allPushed = true
         for (entity in productDao.getPendingProducts().sortedBy { it.id }) {
             try {
-                pushOne(entity)
+                uploadProduct(entity)
             } catch (e: IOException) {
                 Log.w(TAG, "Sin red al subir pendientes: ${e.message}")
                 return false
@@ -231,7 +308,9 @@ class ProductRepositoryImpl(
         // Producto solo local (nunca subido) o ya borrado en el servidor: limpiar Room y multimedia
         try {
             mediaDao?.deleteMediaByProductId(id)
-        } catch (_: Exception) {}
+        } catch (_: Exception) {
+            // No se pudo limpiar la multimedia local: no es grave, se limpiará en la siguiente sincronización
+        }
 
         return productDao.deleteProductById(id) > 0
     }
@@ -245,7 +324,7 @@ class ProductRepositoryImpl(
      */
     override suspend fun syncProductsFromRemote(): Boolean {
         // 1. Probar con la URL actualmente configurada
-        if (executeSync()) {
+        if (downloadProducts()) {
             return true
         }
 
@@ -254,7 +333,7 @@ class ProductRepositoryImpl(
             for (candidate in RetrofitClient.CANDIDATE_URLS) {
                 if (candidate != RetrofitClient.currentBaseUrl) {
                     RetrofitClient.updateBaseUrl(candidate)
-                    if (executeSync()) {
+                    if (downloadProducts()) {
                         Log.i(TAG, "Reconexión automática exitosa con URL candidata: $candidate")
                         return true
                     }
@@ -268,7 +347,7 @@ class ProductRepositoryImpl(
         return false
     }
 
-    private suspend fun executeSync(): Boolean {
+    private suspend fun downloadProducts(): Boolean {
         return try {
             val remoteProducts = productApiService.getProducts()
             if (remoteProducts.isNotEmpty()) {
@@ -280,6 +359,7 @@ class ProductRepositoryImpl(
                     .filter { it.id !in pendingIds }
                     .map { ProductEntity.fromDomain(it.toDomain()).copy(isRemote = true, pendingSync = false) }
                 productDao.insertProducts(entities)
+                syncRemoteImages(remoteProducts, pendingIds)
                 Log.d(TAG, "Sincronización remota completada: ${entities.size} productos descargados desde ${RetrofitClient.currentBaseUrl}")
             }
             // El servidor respondió: aprovechar la conexión para subir lo que quedó pendiente offline
@@ -290,81 +370,10 @@ class ProductRepositoryImpl(
         }
     }
 
+    /** Si la base local está vacía, carga los productos de ejemplo (ver [SampleData]) para que el catálogo no se vea vacío. */
     override suspend fun populateInitialDataIfEmpty() {
         if (productDao.getProductCount() == 0) {
-            val initialProducts = listOf(
-                ProductEntity(
-                    id = 101,
-                    name = "[Local] Pan de Pueblo Horneado a la Leña",
-                    description = "Elaborado localmente con fermentación tradicional en horno de leña comunitario.",
-                    price = 40.0,
-                    category = ProductCategory.BAKERY.name,
-                    producerName = "Panadería San José [Local Offline]",
-                    isExpressDelivery = true,
-                    inStock = true,
-                    isRemote = false,
-                    stock = 15,
-                    sellerId = 2L,
-                    sellerUsername = "vendedor_juan"
-                ),
-                ProductEntity(
-                    id = 102,
-                    name = "[Local] Miel Silvestre de Monte (500g)",
-                    description = "Miel pura no pasteurizada, conservada en el dispositivo en modo offline.",
-                    price = 95.0,
-                    category = ProductCategory.PRODUCE.name,
-                    producerName = "Apícola Los Sauces [Local Offline]",
-                    isExpressDelivery = true,
-                    inStock = true,
-                    isRemote = false,
-                    stock = 8,
-                    sellerId = 2L,
-                    sellerUsername = "vendedor_juan"
-                ),
-                ProductEntity(
-                    id = 103,
-                    name = "[Local] Queso Fresco Ranchero de Hoja",
-                    description = "Queso artesanal envuelto en hoja de plátano, 100% natural de establo local.",
-                    price = 65.0,
-                    category = ProductCategory.DAIRY.name,
-                    producerName = "Rancho San Antonio [Local Offline]",
-                    isExpressDelivery = false,
-                    inStock = true,
-                    isRemote = false,
-                    stock = 12,
-                    sellerId = 2L,
-                    sellerUsername = "vendedor_juan"
-                ),
-                ProductEntity(
-                    id = 104,
-                    name = "[Local] Canasta de Vara Tejida Tradicional",
-                    description = "Artesanía de vara de sauz tejida a mano disponible en catálogo local.",
-                    price = 110.0,
-                    category = ProductCategory.CRAFTS.name,
-                    producerName = "Artesanías El Roble [Local Offline]",
-                    isExpressDelivery = false,
-                    inStock = true,
-                    isRemote = false,
-                    stock = 5,
-                    sellerId = 4L,
-                    sellerUsername = "artesana_maria"
-                ),
-                ProductEntity(
-                    id = 105,
-                    name = "[Local] Naranjas Dulces de Huerto (2 kg)",
-                    description = "Cosecha fresca local disponible sin requerir conexión a internet.",
-                    price = 35.0,
-                    category = ProductCategory.PRODUCE.name,
-                    producerName = "Huerta La Cañada [Local Offline]",
-                    isExpressDelivery = true,
-                    inStock = true,
-                    isRemote = false,
-                    stock = 20,
-                    sellerId = 4L,
-                    sellerUsername = "artesana_maria"
-                )
-            )
-            productDao.insertProducts(initialProducts)
+            productDao.insertProducts(SampleData.products)
         }
     }
 }

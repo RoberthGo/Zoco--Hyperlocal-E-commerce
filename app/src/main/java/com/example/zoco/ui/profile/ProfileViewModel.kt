@@ -3,8 +3,6 @@ package com.example.zoco.ui.profile
 import android.content.SharedPreferences
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.zoco.data.remote.RetrofitClient
-import com.example.zoco.domain.model.PredefinedUsers
 import com.example.zoco.domain.model.UserRole
 import com.example.zoco.domain.model.UserSession
 import com.example.zoco.domain.repository.AuthRepository
@@ -21,15 +19,15 @@ data class ProfileUiState(
     val userRole: String = "Consumidor y Productor Local",
     val photoUri: String? = null,
     val selectedLanguage: String = "es",
-    val apiUrl: String = RetrofitClient.currentBaseUrl,
-    val isCheckingConnection: Boolean = false,
-    val connectionStatus: String? = "Listo para probar conexión con Django REST API",
-    val isOnline: Boolean? = null,
-    val currentSession: UserSession = PredefinedUsers.BUYER.session,
+    val currentSession: UserSession = UserSession.LOGGED_OUT,
     val isAuthLoading: Boolean = false,
     val authMessage: String? = null
 )
 
+/**
+ * ViewModel de la pestaña "Perfil": datos de la cuenta (nombre, foto, rol), cambio de idioma,
+ * convertirse en vendedor y cerrar sesión. La sesión misma la guarda [AuthRepository].
+ */
 class ProfileViewModel(
     private val userProfileRepository: UserProfileRepository? = null,
     private val sharedPreferences: SharedPreferences? = null,
@@ -80,96 +78,29 @@ class ProfileViewModel(
         }
     }
 
-    fun quickSwitchRole(role: UserRole) {
-        val repo = authRepository ?: return
-        viewModelScope.launch {
-            _uiState.update { it.copy(isAuthLoading = true, authMessage = null) }
-            val result = repo.quickSwitch(role)
-            _uiState.update {
-                val session = result.getOrNull()
-                it.copy(
-                    isAuthLoading = false,
-                    authMessage = if (session != null) {
-                        "Sesión activa: ${session.fullName} (${session.role.name})"
-                    } else {
-                        "No se pudo cambiar de cuenta."
-                    }
-                )
-            }
-        }
-    }
-
-    fun login(username: String, password: String) {
-        val repo = authRepository ?: return
-        if (username.isBlank() || password.isBlank()) {
-            _uiState.update { it.copy(authMessage = "Ingresa usuario y contraseña.") }
-            return
-        }
-        viewModelScope.launch {
-            _uiState.update { it.copy(isAuthLoading = true, authMessage = null) }
-            val result = repo.login(username, password)
-            _uiState.update {
-                if (result.isSuccess) {
-                    val session = result.getOrThrow()
-                    it.copy(
-                        isAuthLoading = false,
-                        authMessage = "Bienvenido ${session.fullName} (${session.role.name})"
-                    )
-                } else {
-                    it.copy(
-                        isAuthLoading = false,
-                        authMessage = "Credenciales incorrectas o servidor no disponible."
-                    )
-                }
-            }
-        }
-    }
-
-    fun register(
-        username: String,
-        email: String,
-        password: String,
-        fullName: String,
-        role: UserRole
-    ) {
-        val repo = authRepository ?: return
-        if (username.isBlank() || password.length < 6) {
-            _uiState.update { it.copy(authMessage = "Usuario requerido y contraseña de al menos 6 caracteres.") }
-            return
-        }
-        viewModelScope.launch {
-            _uiState.update { it.copy(isAuthLoading = true, authMessage = null) }
-            val result = repo.register(username, email, password, fullName, role)
-            _uiState.update {
-                val session = result.getOrNull()
-                it.copy(
-                    isAuthLoading = false,
-                    authMessage = if (session != null) {
-                        "Cuenta creada: ${session.fullName} (${session.role.name})"
-                    } else {
-                        "No se pudo registrar la cuenta."
-                    }
-                )
-            }
-        }
-    }
-
     fun becomeSeller(producerName: String?) {
         val repo = authRepository ?: return
         viewModelScope.launch {
             _uiState.update { it.copy(isAuthLoading = true, authMessage = null) }
             val result = repo.becomeSeller(producerName)
             _uiState.update {
-                val session = result.getOrNull()
                 it.copy(
                     isAuthLoading = false,
-                    authMessage = if (session != null) {
+                    authMessage = if (result.isSuccess) {
                         "¡Ahora eres Vendedor! Pestaña Vender habilitada."
                     } else {
-                        "No se pudo actualizar el rol."
+                        result.exceptionOrNull()?.message ?: "No se pudo actualizar el rol."
                     }
                 )
             }
+        }
+    }
+
+    fun logout() {
+        val repo = authRepository ?: return
+        viewModelScope.launch {
+            repo.logout()
+            _uiState.update { it.copy(authMessage = null) }
         }
     }
 
@@ -186,8 +117,20 @@ class ProfileViewModel(
     }
 
     fun updatePhoto(photoUri: String?) {
-        val currentName = _uiState.value.userName
-        updateProfile(currentName, photoUri)
+        val repo = authRepository
+        if (repo == null || photoUri == null) {
+            updateProfile(_uiState.value.userName, photoUri)
+            return
+        }
+        viewModelScope.launch {
+            val result = repo.updateAvatar(photoUri)
+            _uiState.update {
+                it.copy(
+                    authMessage = if (result.isSuccess) null
+                    else "La foto se guardó en tu dispositivo, pero no se pudo subir. Inténtalo de nuevo con conexión."
+                )
+            }
+        }
     }
 
     fun updateName(name: String) {
@@ -199,32 +142,10 @@ class ProfileViewModel(
         _uiState.update { it.copy(selectedLanguage = language) }
         try {
             Locale.setDefault(Locale.forLanguageTag(language))
-        } catch (_: Exception) {}
-        sharedPreferences?.edit()?.putString(KEY_LANGUAGE, language)?.apply()
-    }
-
-    fun updateApiUrl(url: String) {
-        _uiState.update { it.copy(apiUrl = url) }
-        RetrofitClient.updateBaseUrl(url)
-    }
-
-    fun checkConnection() {
-        viewModelScope.launch {
-            _uiState.update {
-                it.copy(
-                    isCheckingConnection = true,
-                    connectionStatus = "Probando conexión con Django REST API..."
-                )
-            }
-            val (ok, msg) = RetrofitClient.pingBackend()
-            _uiState.update {
-                it.copy(
-                    isCheckingConnection = false,
-                    isOnline = ok,
-                    connectionStatus = msg
-                )
-            }
+        } catch (_: Exception) {
+            // Idioma no válido: se conserva el actual
         }
+        sharedPreferences?.edit()?.putString(KEY_LANGUAGE, language)?.apply()
     }
 
     companion object {

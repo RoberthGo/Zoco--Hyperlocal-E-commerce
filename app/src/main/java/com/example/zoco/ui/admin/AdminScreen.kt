@@ -1,5 +1,8 @@
 package com.example.zoco.ui.admin
 
+import com.example.zoco.ui.common.formatPrice
+import com.example.zoco.ui.common.formatAmount
+import com.example.zoco.ui.common.orderStatusLabel
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -297,7 +300,7 @@ private fun AdminOrderCard(
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    text = order.status,
+                    text = orderStatusLabel(order.status),
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary
@@ -317,7 +320,7 @@ private fun AdminOrderCard(
                 )
             }
             Text(
-                text = stringResource(R.string.order_total_label, "%.2f".format(order.totalAmount)),
+                text = stringResource(R.string.order_total_label, formatAmount(order.totalAmount)),
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.secondary
@@ -379,7 +382,7 @@ private fun AdminProductCard(
                     color = MaterialTheme.colorScheme.primary
                 )
                 Text(
-                    text = "\$${"%.2f".format(product.price)} • ${stringResource(R.string.stock_available, product.stock)}",
+                    text = "${formatPrice(product.price)} • ${stringResource(R.string.stock_available, product.stock)}",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.outline
                 )

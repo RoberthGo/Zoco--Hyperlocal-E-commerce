@@ -17,7 +17,9 @@ data class ProductDto(
     @Json(name = "inStock") val inStock: Boolean = true,
     @Json(name = "stock") val stock: Int = 10,
     @Json(name = "sellerId") val sellerId: Long? = null,
-    @Json(name = "sellerUsername") val sellerUsername: String? = null
+    @Json(name = "sellerUsername") val sellerUsername: String? = null,
+    // Solo lectura: URL de la foto en el servidor. La foto se sube aparte (POST products/{id}/image).
+    @Json(name = "imageUrl") val imageUrl: String? = null
 ) {
     fun toDomain(): Product {
         val cat = runCatching { ProductCategory.valueOf(category) }.getOrDefault(ProductCategory.ALL)
@@ -32,7 +34,8 @@ data class ProductDto(
             inStock = inStock,
             stock = stock,
             sellerId = sellerId,
-            sellerUsername = sellerUsername
+            sellerUsername = sellerUsername,
+            imageUrl = imageUrl
         )
     }
 

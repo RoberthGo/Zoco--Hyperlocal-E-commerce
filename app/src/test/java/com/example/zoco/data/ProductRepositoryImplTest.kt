@@ -85,6 +85,7 @@ class ProductRepositoryImplTest {
             updated += id to product
             return product
         }
+        override suspend fun uploadImage(id: Long, image: okhttp3.MultipartBody.Part): ProductDto { check(); error("no usado") }
         override suspend fun deleteProduct(id: Long): Response<Unit> {
             check()
             deleted += id

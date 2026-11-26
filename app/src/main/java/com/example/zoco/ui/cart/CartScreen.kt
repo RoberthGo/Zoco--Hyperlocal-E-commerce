@@ -1,5 +1,8 @@
 package com.example.zoco.ui.cart
 
+import com.example.zoco.ui.common.formatPrice
+import com.example.zoco.ui.common.formatAmount
+import com.example.zoco.ui.common.orderStatusLabel
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -458,7 +461,7 @@ private fun OrderTotalCard(
                     color = MaterialTheme.colorScheme.onPrimaryContainer
                 )
                 Text(
-                    text = "\$${"%.2f".format(uiState.totalAmount)}",
+                    text = formatPrice(uiState.totalAmount),
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onPrimaryContainer
@@ -515,14 +518,14 @@ fun CartItemRow(
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    text = "${item.quantity} x \$${"%.2f".format(item.product.price)}",
+                    text = "${item.quantity} x ${formatPrice(item.product.price)}",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.outline
                 )
             }
 
             Text(
-                text = "\$${"%.2f".format(item.product.price * item.quantity)}",
+                text = formatPrice(item.product.price * item.quantity),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.secondary,
@@ -574,7 +577,7 @@ fun RecentOrderCard(order: Order) {
                     }
                 }
                 Text(
-                    text = order.status,
+                    text = orderStatusLabel(order.status),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.Bold
@@ -605,7 +608,7 @@ fun RecentOrderCard(order: Order) {
                     color = MaterialTheme.colorScheme.outline
                 )
                 Text(
-                    text = stringResource(R.string.order_total_label, "%.2f".format(order.totalAmount)),
+                    text = stringResource(R.string.order_total_label, formatAmount(order.totalAmount)),
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.secondary

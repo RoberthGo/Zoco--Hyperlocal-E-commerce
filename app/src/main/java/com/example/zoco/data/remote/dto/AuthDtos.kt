@@ -94,3 +94,9 @@ data class BecomeSellerResponseDto(
     @Json(name = "user") val user: UserDto,
     @Json(name = "message") val message: String = ""
 )
+
+@JsonClass(generateAdapter = true)
+data class AvatarResponseDto(
+    @Json(name = "user") val user: UserDto,
+    @Json(name = "message") val message: String = ""
+)

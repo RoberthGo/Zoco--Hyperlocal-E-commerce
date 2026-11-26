@@ -3,7 +3,6 @@ package com.example.zoco.ui.catalog
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.zoco.data.remote.NetworkConnectivityChecker
-import com.example.zoco.domain.model.PredefinedUsers
 import com.example.zoco.domain.model.Product
 import com.example.zoco.domain.model.ProductCategory
 import com.example.zoco.domain.model.UserSession
@@ -17,6 +16,11 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
+/**
+ * Todo lo que la pantalla de catálogo necesita para dibujarse (la pantalla solo lee esto).
+ * [enforceRolePermissions] indica si los permisos de borrado dependen del rol de la sesión
+ * (cuando hay login) o solo de si el producto es del propio usuario (modo sin login, usado en pruebas).
+ */
 data class CatalogUiState(
     val searchQuery: String = "",
     val selectedCategory: ProductCategory = ProductCategory.ALL,
@@ -27,7 +31,7 @@ data class CatalogUiState(
     val isApiActive: Boolean = false,
     val isInternetAvailable: Boolean = true,
     val syncMessage: String? = null,
-    val currentSession: UserSession = PredefinedUsers.BUYER.session,
+    val currentSession: UserSession = UserSession.LOGGED_OUT,
     val enforceRolePermissions: Boolean = false
 ) {
     fun canDelete(product: Product): Boolean {
@@ -47,6 +51,25 @@ data class CatalogUiState(
     }
 }
 
+/** Lo que el usuario eligió en la barra de búsqueda y los filtros. */
+private data class CatalogFilters(
+    val query: String,
+    val category: ProductCategory,
+    val expressOnly: Boolean
+)
+
+/** Estado de la conexión con el servidor. */
+private data class ServerStatus(
+    val isSyncing: Boolean,
+    val message: String?,
+    val isActive: Boolean
+)
+
+/**
+ * ViewModel de la pestaña "Catálogo". Junta tres cosas en un solo [uiState]:
+ * los productos guardados en el teléfono, los filtros del usuario y el estado del servidor.
+ * Cada vez que cambia una de ellas, el estado se recalcula y la pantalla se redibuja sola.
+ */
 class CatalogViewModel(
     private val repository: ProductRepository,
     private val networkChecker: NetworkConnectivityChecker? = null,
@@ -60,62 +83,51 @@ class CatalogViewModel(
     private val _isApiActive = MutableStateFlow(false)
     private val _syncMessage = MutableStateFlow<String?>(null)
 
+    private val filters = combine(_searchQuery, _selectedCategory, _expressOnly, ::CatalogFilters)
+    private val serverStatus = combine(_isSyncing, _syncMessage, _isApiActive, ::ServerStatus)
+
     val uiState: StateFlow<CatalogUiState> = combine(
         repository.getProducts(),
-        _searchQuery,
-        _selectedCategory,
-        _expressOnly,
-        _isSyncing,
-        _syncMessage,
-        _isApiActive,
+        filters,
+        serverStatus,
         networkChecker?.observeConnectivity() ?: flowOf(true),
-        authRepository?.sessionFlow ?: flowOf(PredefinedUsers.BUYER.session)
-    ) { args: Array<Any?> ->
-        @Suppress("UNCHECKED_CAST")
-        val allProducts = args[0] as List<Product>
-        val query = args[1] as String
-        val category = args[2] as ProductCategory
-        val expressOnly = args[3] as Boolean
-        val isSyncing = args[4] as Boolean
-        val syncMessage = args[5] as? String
-        val isApiActive = args[6] as Boolean
-        val isInternetAvailable = args[7] as Boolean
-        val session = args[8] as UserSession
-
-        // REGLA CRÍTICA: Cuando la API no esté activa, asegurarse de que no se muestren las cosas de la API
-        val availableProducts = if (isApiActive) {
-            allProducts
-        } else {
-            allProducts.filterNot {
-                it.isRemote || it.name.startsWith("[En Línea]") || it.producerName.contains("[Web API]")
-            }
-        }
-
-        val filtered = availableProducts.filter { product ->
-            val matchesQuery = query.isBlank() || product.name.contains(query, ignoreCase = true) || product.description.contains(query, ignoreCase = true)
-            val matchesCategory = category == ProductCategory.ALL || product.category == category
-            val matchesExpress = !expressOnly || product.isExpressDelivery
-            matchesQuery && matchesCategory && matchesExpress
-        }
+        authRepository?.sessionFlow ?: flowOf(UserSession.LOGGED_OUT)
+    ) { allProducts, filters, server, isInternetAvailable, session ->
+        // Si el servidor no responde, no se muestran los productos que vinieron de él (solo los locales)
+        val availableProducts = if (server.isActive) allProducts else allProducts.filterNot { isServerItem(it) }
 
         CatalogUiState(
-            searchQuery = query,
-            selectedCategory = category,
-            expressOnly = expressOnly,
-            products = filtered,
+            searchQuery = filters.query,
+            selectedCategory = filters.category,
+            expressOnly = filters.expressOnly,
+            products = availableProducts.filter { matches(it, filters) },
             isLoading = false,
-            isSyncing = isSyncing,
-            isApiActive = isApiActive,
+            isSyncing = server.isSyncing,
+            isApiActive = server.isActive,
             isInternetAvailable = isInternetAvailable,
-            syncMessage = syncMessage,
+            syncMessage = server.message,
             currentSession = session,
             enforceRolePermissions = authRepository != null
         )
     }.stateIn(
         scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5000),
+        started = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS),
         initialValue = CatalogUiState(isLoading = true)
     )
+
+    /** ¿El producto vino del servidor? (incluye datos viejos marcados con etiquetas de texto). */
+    private fun isServerItem(product: Product): Boolean =
+        product.isRemote || product.name.startsWith("[En Línea]") || product.producerName.contains("[Web API]")
+
+    /** ¿El producto cumple la búsqueda, la categoría y el filtro de entrega express? */
+    private fun matches(product: Product, filters: CatalogFilters): Boolean {
+        val matchesQuery = filters.query.isBlank() ||
+            product.name.contains(filters.query, ignoreCase = true) ||
+            product.description.contains(filters.query, ignoreCase = true)
+        val matchesCategory = filters.category == ProductCategory.ALL || product.category == filters.category
+        val matchesExpress = !filters.expressOnly || product.isExpressDelivery
+        return matchesQuery && matchesCategory && matchesExpress
+    }
 
     init {
         viewModelScope.launch {
@@ -123,9 +135,9 @@ class CatalogViewModel(
             val synced = repository.syncProductsFromRemote()
             _isApiActive.value = synced
             _syncMessage.value = if (synced) {
-                "Modo En Línea: Conectado con Web API."
+                null
             } else {
-                "Modo Local Offline: Web API no activa. Mostrando catálogo local."
+                "Sin conexión con el servidor. Mostrando los productos guardados en tu dispositivo."
             }
         }
     }
@@ -145,14 +157,14 @@ class CatalogViewModel(
     fun syncFromWeb() {
         viewModelScope.launch {
             _isSyncing.value = true
-            _syncMessage.value = "Conectando con Django REST API..."
+            _syncMessage.value = "Actualizando catálogo..."
             val success = repository.syncProductsFromRemote()
             _isApiActive.value = success
             _isSyncing.value = false
             _syncMessage.value = if (success) {
-                "Catálogo Web API sincronizado exitosamente."
+                "Catálogo actualizado."
             } else {
-                "Web API no activa. Mostrando únicamente catálogo local offline."
+                "No se pudo conectar con el servidor. Mostrando los productos guardados en tu dispositivo."
             }
         }
     }
@@ -170,14 +182,19 @@ class CatalogViewModel(
         viewModelScope.launch {
             val deleted = repository.deleteProduct(product)
             _syncMessage.value = if (deleted) {
-                "Producto eliminado de Room y de la Web API: ${product.name}"
+                "Producto eliminado: ${product.name}"
             } else {
-                "No se pudo eliminar \"${product.name}\". Verifica conexión o permisos."
+                "No se pudo eliminar \"${product.name}\". Revisa tu conexión o tus permisos."
             }
         }
     }
 
     fun clearSyncMessage() {
         _syncMessage.value = null
+    }
+
+    private companion object {
+        /** Cuánto tiempo (ms) se sigue calculando el estado después de que la pantalla deja de verlo. */
+        const val STOP_TIMEOUT_MS = 5000L
     }
 }

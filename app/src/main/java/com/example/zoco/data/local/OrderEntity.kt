@@ -28,14 +28,14 @@ data class OrderEntity(
     fun toDomain(): Order {
         return Order(
             id = id,
-            customerName = customerName,
+            customerName = customerName.cleanForDisplay(),
             customerPhone = customerPhone,
             deliveryAddress = deliveryAddress,
             scheduledTime = scheduledTime,
             totalAmount = totalAmount,
             status = status,
             isExpress = isExpress,
-            itemSummary = itemSummary,
+            itemSummary = itemSummary.cleanForDisplay(),
             createdAt = createdAt,
             isRemote = isRemote
         )

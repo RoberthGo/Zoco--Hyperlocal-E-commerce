@@ -17,9 +17,9 @@ import kotlinx.coroutines.launch
 data class CartUiState(
     val items: List<CartItem> = emptyList(),
     val scheduledDeliveryTime: String = "14:00",
-    val customerName: String = "Laura Gómez",
-    val customerPhone: String = "4451234567",
-    val deliveryAddress: String = "Calle Morelos #15, Centro",
+    val customerName: String = "",
+    val customerPhone: String = "",
+    val deliveryAddress: String = "",
     val isExpress: Boolean = false,
     val orderCompletedMessage: String? = null,
     val isSubmitting: Boolean = false,
@@ -30,6 +30,11 @@ data class CartUiState(
         get() = items.sumOf { it.product.price * it.quantity }
 }
 
+/**
+ * ViewModel de la pestaña "Carrito": guarda los productos que el usuario va a comprar, los datos de
+ * entrega y la lista de pedidos recientes. Al confirmar, crea el pedido en la base local y lo
+ * sube al servidor (si no hay conexión, queda pendiente y se sube después).
+ */
 class CartViewModel(
     private val orderRepository: OrderRepository? = null,
     private val authRepository: AuthRepository? = null
@@ -61,7 +66,7 @@ class CartViewModel(
             }
             viewModelScope.launch {
                 combine(repo.getOrders(), _isApiActive) { orders, isApiActive ->
-                    // REGLA CRÍTICA: Cuando la API no esté activa, no mostrar pedidos de la API
+                    // Si el servidor no responde, no se muestran los pedidos que vinieron de él (solo los locales)
                     if (isApiActive) {
                         orders
                     } else {
@@ -153,7 +158,7 @@ class CartViewModel(
                 it.copy(
                     items = emptyList(),
                     isSubmitting = false,
-                    orderCompletedMessage = "¡Pedido #${if (orderId > 0) orderId else "1"} registrado con éxito! Guardado en SQLite (Room) y enviado a Web API. Programado para las ${state.scheduledDeliveryTime}."
+                    orderCompletedMessage = "¡Pedido #${if (orderId > 0) orderId else "1"} registrado con éxito! Programado para las ${state.scheduledDeliveryTime}."
                 )
             }
         }

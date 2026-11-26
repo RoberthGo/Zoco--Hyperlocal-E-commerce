@@ -1,5 +1,6 @@
 package com.example.zoco.ui.catalog
 
+import com.example.zoco.ui.common.formatPrice
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -367,7 +368,7 @@ fun ProductItemCard(
                     )
                 }
                 Text(
-                    text = "\$${"%.2f".format(product.price)}",
+                    text = formatPrice(product.price),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.secondary
@@ -530,7 +531,7 @@ fun ProductPurchaseBottomSheet(
                     style = MaterialTheme.typography.bodyMedium
                 )
                 Text(
-                    text = "\$${"%.2f".format(product.price)} MXN",
+                    text = "${formatPrice(product.price)} MXN",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.secondary
@@ -592,7 +593,7 @@ fun ProductPurchaseBottomSheet(
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    text = "\$${"%.2f".format(product.price * quantity)} MXN",
+                    text = "${formatPrice(product.price * quantity)} MXN",
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary

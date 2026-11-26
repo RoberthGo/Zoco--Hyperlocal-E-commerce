@@ -1,5 +1,7 @@
 package com.example.zoco.ui.seller
 
+import com.example.zoco.ui.common.formatPrice
+import com.example.zoco.ui.common.orderStatusLabel
 import android.Manifest
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
@@ -284,7 +286,7 @@ fun SellerScreen(
                                                 fontWeight = FontWeight.Bold
                                             )
                                             Text(
-                                                text = order.status,
+                                                text = orderStatusLabel(order.status),
                                                 style = MaterialTheme.typography.labelSmall,
                                                 fontWeight = FontWeight.Bold,
                                                 color = MaterialTheme.colorScheme.primary
@@ -359,7 +361,7 @@ private fun SellerOwnProductCard(
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    text = "${product.producerName} • \$${"%.2f".format(product.price)}",
+                    text = "${product.producerName} • ${formatPrice(product.price)}",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.primary
                 )

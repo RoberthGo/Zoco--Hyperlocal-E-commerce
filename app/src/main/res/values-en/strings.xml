@@ -21,14 +21,14 @@
     <string name="add_to_cart">Add</string>
     <string name="added_to_cart">Added to cart!</string>
     <string name="no_products_found">No products found for selected filters.</string>
-    <string name="sync_web_api">Sync with Web API</string>
-    <string name="delete_product_description">Delete from database and Web API</string>
-    <string name="badge_online_api">Online (Web API)</string>
-    <string name="badge_local_room">Local (Room SQLite)</string>
-    <string name="badge_pending_sync">Pending upload</string>
+    <string name="sync_web_api">Refresh catalog</string>
+    <string name="delete_product_description">Delete product</string>
+    <string name="badge_online_api">Published</string>
+    <string name="badge_local_room">On this device only</string>
+    <string name="badge_pending_sync">Pending publish</string>
 
     <!-- Cart Screen -->
-    <string name="cart_title">My Local Order</string>
+    <string name="cart_title">My order</string>
     <string name="cart_empty">Your cart is empty</string>
     <string name="cart_total">Total amount:</string>
     <string name="delivery_schedule_title">Pickup / Delivery Schedule</string>
@@ -43,7 +43,7 @@
     <string name="cart_total_label">Total amount:</string>
     <string name="confirm_order_button">Confirm Order</string>
     <string name="recent_orders_title">Your recent orders (%d):</string>
-    <string name="sync_orders_description">Sync orders with Web API</string>
+    <string name="sync_orders_description">Refresh orders</string>
     <string name="delivery_info_title">Delivery &amp; Shipping Info</string>
     <string name="buyer_name_label">Buyer Name</string>
     <string name="delivery_address_label">Delivery Address</string>
@@ -52,11 +52,11 @@
     <string name="order_customer_label">Customer: %s</string>
     <string name="order_time_label">Time: %s</string>
     <string name="order_total_label">Total: $%s</string>
-    <string name="tag_web_api">Web API</string>
-    <string name="tag_room_local">Local Room</string>
+    <string name="tag_web_api">Sent</string>
+    <string name="tag_room_local">On this device only</string>
 
     <!-- Seller Screen -->
-    <string name="seller_title">Register Local Product</string>
+    <string name="seller_title">Publish product</string>
     <string name="product_name_label">Product Name</string>
     <string name="product_price_label">Price (MXN)</string>
     <string name="product_category_label">Category</string>
@@ -98,16 +98,6 @@
     <string name="language_label">App Language</string>
     <string name="language_es">Spanish</string>
     <string name="language_en">English</string>
-    <string name="offline_status">Offline Mode Active (Local Database)</string>
-    <string name="api_connection_title">Web API Connection (Retrofit)</string>
-    <string name="api_url_label">Django REST backend base URL:</string>
-    <string name="chip_wifi_pc">Wi-Fi PC (192.168.20.180)</string>
-    <string name="chip_localhost">Localhost (127.0.0.1)</string>
-    <string name="chip_emulator">Emulator (10.0.2.2)</string>
-    <string name="chip_wifi_home">Home Wi-Fi (192.168.1.147)</string>
-    <string name="btn_test_connection">Test Connection</string>
-    <string name="status_online">Online</string>
-    <string name="status_offline">Offline</string>
     <string name="team_title">Zoco Development Team</string>
     <string name="team_members">1. Roberto Gordillo Herrera\n2. Leonardo Nuñez Zavala\n3. Ricardo Abraham Pérez Hernández</string>
 
@@ -122,19 +112,12 @@
     <string name="dialog_become_seller_msg">The Sell tab will be enabled so you can publish products and manage your orders. You can only delete your own products.</string>
     <string name="dialog_business_name_label">Your business or producer name (optional)</string>
     <string name="dialog_confirm_seller">Yes, activate Seller</string>
-    <string name="quick_switch_title">Quick Account Switch (1-Click)</string>
-    <string name="quick_switch_subtitle">Switch between the 3 predefined accounts to test roles &amp; permissions:</string>
-    <string name="quick_buyer_btn">Buyer\n(Laura)</string>
-    <string name="quick_seller_btn">Seller\n(Juan)</string>
-    <string name="quick_admin_btn">Admin\n(Zoco)</string>
-    <string name="btn_auth_login_register">Sign In or Create Account</string>
     <string name="auth_dialog_login_tab">Sign In</string>
     <string name="auth_dialog_register_tab">Register</string>
     <string name="auth_username_label">Username</string>
     <string name="auth_password_label">Password</string>
     <string name="auth_email_label">Email</string>
     <string name="auth_fullname_label">Full name</string>
-    <string name="auth_role_select">Account type:</string>
     <string name="auth_submit_login">Sign In</string>
     <string name="auth_submit_register">Create Account</string>
     <string name="seller_tab_publish">Publish</string>
@@ -152,4 +135,20 @@
     <string name="btn_mark_preparing">Preparing</string>
     <string name="btn_mark_delivery">On the way</string>
     <string name="btn_mark_delivered">Delivered</string>
+    <string name="auth_welcome_title">Welcome to Zoco</string>
+    <string name="auth_welcome_subtitle">Sign in or create your account to continue</string>
+    <string name="auth_confirm_password_label">Confirm password</string>
+    <string name="auth_register_note">New accounts are buyer accounts. You can become a seller later from your profile.</string>
+    <string name="auth_error_required">Fill in all required fields.</string>
+    <string name="auth_error_password_short">Password must be at least 6 characters.</string>
+    <string name="auth_error_password_mismatch">Passwords do not match.</string>
+    <string name="auth_error_email_invalid">Invalid email address.</string>
+    <string name="btn_logout">Sign out</string>
+    <string name="logout_subtitle">You will be signed out on this device</string>
+    <string name="order_status_pending">Pending</string>
+    <string name="order_status_confirmed">Confirmed</string>
+    <string name="order_status_preparing">Preparing</string>
+    <string name="order_status_out_for_delivery">On the way</string>
+    <string name="order_status_delivered">Delivered</string>
+    <string name="order_status_cancelled">Cancelled</string>
 </resources>

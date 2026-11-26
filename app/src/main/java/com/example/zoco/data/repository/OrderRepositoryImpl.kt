@@ -2,6 +2,7 @@ package com.example.zoco.data.repository
 
 import android.util.Log
 import com.example.zoco.data.local.OrderDao
+import com.example.zoco.data.local.SampleData
 import com.example.zoco.data.local.OrderEntity
 import com.example.zoco.data.remote.RetrofitClient
 import com.example.zoco.data.remote.api.OrderApiService
@@ -19,6 +20,12 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import java.io.IOException
 
+/**
+ * Implementación de [OrderRepository]. Primero guarda en la base local (Room) y luego intenta subir al
+ * servidor; si no hay red, el pedido queda marcado como pendiente y se reintenta después.
+ * Si el servidor no responde al descargar, borra de la base local los pedidos que vinieron de él
+ * para no mostrar datos viejos.
+ */
 class OrderRepositoryImpl(
     private val orderDao: OrderDao,
     private val customApiService: OrderApiService? = null,
@@ -77,7 +84,7 @@ class OrderRepositoryImpl(
         val entity = orderDao.getOrderById(localId)
         if (entity != null) {
             try {
-                pushOne(entity)
+                uploadOrder(entity)
             } catch (e: Exception) {
                 Log.w(TAG, "Sin conexión con la Web API; pedido id=$localId queda pendiente: ${e.message}")
                 syncScheduler?.scheduleSync()
@@ -91,7 +98,7 @@ class OrderRepositoryImpl(
      * Sube UN pedido pendiente (POST). Lanza excepción si falla. Al tener éxito reemplaza la fila
      * local por una con el id del servidor (isRemote = true, pendingSync = false).
      */
-    private suspend fun pushOne(entity: OrderEntity) {
+    private suspend fun uploadOrder(entity: OrderEntity) {
         val items = if (entity.itemsJson.isBlank()) emptyList()
         else itemsAdapter.fromJson(entity.itemsJson).orEmpty()
 
@@ -127,7 +134,7 @@ class OrderRepositoryImpl(
         var allPushed = true
         for (entity in orderDao.getPendingOrders().sortedBy { it.id }) {
             try {
-                pushOne(entity)
+                uploadOrder(entity)
             } catch (e: IOException) {
                 Log.w(TAG, "Sin red al subir pedidos pendientes: ${e.message}")
                 return false
@@ -172,37 +179,10 @@ class OrderRepositoryImpl(
         }
     }
 
+    /** Si la base local está vacía, carga pedidos de ejemplo (ver [SampleData]). */
     override suspend fun populateInitialOrdersIfEmpty() {
         if (orderDao.getOrderCount() == 0) {
-            val initialOrders = listOf(
-                OrderEntity(
-                    id = 101,
-                    customerName = "[Local] Juan Comprador (Room SQLite)",
-                    customerPhone = "4451122334",
-                    deliveryAddress = "Calle Morelos #15, Centro Local",
-                    scheduledTime = "15:00",
-                    totalAmount = 80.0,
-                    status = "LOCAL_STORED",
-                    isExpress = false,
-                    itemSummary = "2x [Local] Pan de Pueblo Horneado a la Leña",
-                    createdAt = System.currentTimeMillis() - 7200000,
-                    isRemote = false
-                ),
-                OrderEntity(
-                    id = 102,
-                    customerName = "[Local] María Local (Room SQLite)",
-                    customerPhone = "4459988776",
-                    deliveryAddress = "Barrio San Juan #4, Localidad",
-                    scheduledTime = "17:30",
-                    totalAmount = 95.0,
-                    status = "LOCAL_STORED",
-                    isExpress = true,
-                    itemSummary = "1x [Local] Miel Silvestre de Monte (500g)",
-                    createdAt = System.currentTimeMillis() - 3600000,
-                    isRemote = false
-                )
-            )
-            orderDao.insertOrders(initialOrders)
+            orderDao.insertOrders(SampleData.orders())
         }
     }
 

@@ -8,6 +8,13 @@ enum class ProductCategory {
     CRAFTS
 }
 
+/**
+ * Un producto del catálogo.
+ *  - [isRemote]: viene del servidor (si es false, solo existe en este teléfono).
+ *  - [pendingSync]: tiene cambios que aún no se han subido al servidor.
+ *  - [sellerId] / [sellerUsername]: quién lo vende; se usa para saber quién puede editarlo o borrarlo.
+ *  - [imageUrl]: foto (URL del servidor o archivo local si todavía no se ha subido).
+ */
 data class Product(
     val id: Long = 0,
     val name: String,

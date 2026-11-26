@@ -9,6 +9,10 @@ import com.example.zoco.domain.repository.UserProfileRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
+/**
+ * Perfil general de la comunidad (nombre y foto compartidos). No es la cuenta del usuario: esa la
+ * maneja [AuthRepositoryImpl]. Solo se usa cuando no hay sesión de usuario disponible.
+ */
 class UserProfileRepositoryImpl(
     private val userProfileDao: UserProfileDao
 ) : UserProfileRepository {

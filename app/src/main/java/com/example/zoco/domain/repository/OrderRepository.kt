@@ -4,6 +4,10 @@ import com.example.zoco.domain.model.CartItem
 import com.example.zoco.domain.model.Order
 import kotlinx.coroutines.flow.Flow
 
+/**
+ * Pedidos. Igual que los productos: se guardan primero en la base local y se suben al servidor
+ * cuando hay conexión ([pushPending]).
+ */
 interface OrderRepository {
     fun getOrders(): Flow<List<Order>>
     suspend fun getOrderById(id: Long): Order?

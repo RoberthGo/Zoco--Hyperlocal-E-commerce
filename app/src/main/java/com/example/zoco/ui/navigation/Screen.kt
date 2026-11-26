@@ -10,6 +10,14 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import com.example.zoco.R
 import com.example.zoco.domain.model.UserRole
 
+/**
+ * Las pestañas de la barra de navegación. Cada una tiene una ruta (`route`), un título y un ícono.
+ * [visibleFor] decide qué pestañas ve cada rol:
+ *  - comprador: Catálogo, Carrito, Perfil
+ *  - vendedor: las anteriores + Vender
+ *  - administrador: todas + Admin
+ * Solo oculta pestañas; la seguridad real (qué puede hacer cada rol) la aplica el servidor.
+ */
 enum class Screen(
     val route: String,
     val titleResId: Int,

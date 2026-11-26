@@ -1,5 +1,7 @@
 package com.example.zoco.ui.admin
 
+import com.example.zoco.ui.common.roleText
+import com.example.zoco.ui.common.orderStatusText
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.zoco.domain.model.ManagedUser
@@ -24,6 +26,10 @@ data class AdminUiState(
     val statusMessage: String? = null
 )
 
+/**
+ * ViewModel de la pestaña "Admin" (solo administradores): lista de usuarios, pedidos y productos
+ * de toda la plataforma, con acciones de moderación (cambiar roles, estados y borrar productos).
+ */
 class AdminViewModel(
     private val authRepository: AuthRepository,
     private val productRepository: ProductRepository,
@@ -74,7 +80,7 @@ class AdminViewModel(
             _uiState.update {
                 it.copy(
                     statusMessage = if (ok) {
-                        "Rol actualizado a ${newRole.name}"
+                        "Rol actualizado a ${roleText(newRole)}"
                     } else {
                         "No se pudo actualizar el rol."
                     }
@@ -89,7 +95,7 @@ class AdminViewModel(
             _uiState.update {
                 it.copy(
                     statusMessage = if (ok) {
-                        "Pedido #$orderId actualizado a $newStatus"
+                        "Pedido #$orderId actualizado: ${orderStatusText(newStatus)}"
                     } else {
                         "No se pudo actualizar el pedido #$orderId"
                     }
@@ -104,9 +110,9 @@ class AdminViewModel(
             _uiState.update {
                 it.copy(
                     statusMessage = if (ok) {
-                        "Producto moderado/eliminado: ${product.name}"
+                        "Producto eliminado: ${product.name}"
                     } else {
-                        "No se pudo eliminar \"${product.name}\". Verifica la conexión."
+                        "No se pudo eliminar \"${product.name}\". Revisa la conexión."
                     }
                 )
             }

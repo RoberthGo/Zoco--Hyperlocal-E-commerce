@@ -1,9 +1,9 @@
 package com.example.zoco.ui.seller
 
+import com.example.zoco.ui.common.orderStatusText
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.zoco.domain.model.Order
-import com.example.zoco.domain.model.PredefinedUsers
 import com.example.zoco.domain.model.Product
 import com.example.zoco.domain.model.ProductCategory
 import com.example.zoco.domain.model.UserSession
@@ -30,10 +30,15 @@ data class SellerUiState(
     val errorMessage: String? = null,
     val myProducts: List<Product> = emptyList(),
     val receivedOrders: List<Order> = emptyList(),
-    val currentSession: UserSession = PredefinedUsers.SELLER.session,
+    val currentSession: UserSession = UserSession.LOGGED_OUT,
     val actionMessage: String? = null
 )
 
+/**
+ * ViewModel de la pestaña "Vender": el formulario para publicar un producto, la lista de productos
+ * del propio vendedor y los pedidos que recibió (con botones para cambiar su estado).
+ * Solo el vendedor ve sus productos: se filtran con [Product.isOwnedBy].
+ */
 class SellerViewModel(
     private val repository: ProductRepository,
     private val orderRepository: OrderRepository? = null,
@@ -143,7 +148,7 @@ class SellerViewModel(
                     actionMessage = if (deleted) {
                         "Producto eliminado: ${product.name}"
                     } else {
-                        "No se pudo eliminar \"${product.name}\". Verifica tu conexión."
+                        "No se pudo eliminar \"${product.name}\". Revisa tu conexión."
                     }
                 )
             }
@@ -156,7 +161,7 @@ class SellerViewModel(
             _uiState.update {
                 it.copy(
                     actionMessage = if (updated) {
-                        "Pedido #$orderId actualizado a $newStatus"
+                        "Pedido #$orderId actualizado: ${orderStatusText(newStatus)}"
                     } else {
                         "No se pudo actualizar el pedido #$orderId"
                     }

@@ -1,15 +1,19 @@
 package com.example.zoco.data.remote.api
 
 import com.example.zoco.data.remote.dto.AuthResponseDto
+import com.example.zoco.data.remote.dto.AvatarResponseDto
 import com.example.zoco.data.remote.dto.BecomeSellerRequestDto
 import com.example.zoco.data.remote.dto.BecomeSellerResponseDto
 import com.example.zoco.data.remote.dto.LoginRequestDto
 import com.example.zoco.data.remote.dto.RegisterRequestDto
 import com.example.zoco.data.remote.dto.RoleUpdateRequestDto
 import com.example.zoco.data.remote.dto.UserDto
+import okhttp3.MultipartBody
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.GET
+import retrofit2.http.Multipart
+import retrofit2.http.Part
 import retrofit2.http.POST
 import retrofit2.http.Path
 
@@ -23,6 +27,10 @@ interface AuthApiService {
 
     @POST("auth/logout/")
     suspend fun logout(): Response<Unit>
+
+    @Multipart
+    @POST("auth/me/avatar/")
+    suspend fun uploadAvatar(@Part image: MultipartBody.Part): AvatarResponseDto
 
     @POST("auth/become-seller/")
     suspend fun becomeSeller(@Body request: BecomeSellerRequestDto): BecomeSellerResponseDto

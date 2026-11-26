@@ -27,12 +27,4 @@ class ProfileViewModelTest {
         viewModel.setLanguage("es")
         assertEquals("es", viewModel.uiState.value.selectedLanguage)
     }
-
-    @Test
-    fun updateApiUrl_updatesState() {
-        val viewModel = ProfileViewModel()
-        val testUrl = "http://192.168.1.100:8000/api/"
-        viewModel.updateApiUrl(testUrl)
-        assertEquals(testUrl, viewModel.uiState.value.apiUrl)
-    }
 }

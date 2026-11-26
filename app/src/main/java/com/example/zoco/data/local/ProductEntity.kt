@@ -30,11 +30,11 @@ data class ProductEntity(
         val cat = runCatching { ProductCategory.valueOf(category) }.getOrDefault(ProductCategory.ALL)
         return Product(
             id = id,
-            name = name,
+            name = name.cleanForDisplay(),
             description = description,
             price = price,
             category = cat,
-            producerName = producerName,
+            producerName = producerName.cleanForDisplay(),
             isExpressDelivery = isExpressDelivery,
             inStock = inStock && stock > 0,
             isRemote = isRemote,
