@@ -129,8 +129,12 @@ class CatalogViewModel(
 
     fun deleteProduct(product: Product) {
         viewModelScope.launch {
-            repository.deleteProduct(product)
-            _syncMessage.value = "Producto eliminado de Room y de la Web API: ${product.name}"
+            val deleted = repository.deleteProduct(product)
+            _syncMessage.value = if (deleted) {
+                "Producto eliminado de Room y de la Web API: ${product.name}"
+            } else {
+                "Sin conexión con la Web API: no se pudo eliminar \"${product.name}\". Eliminar requiere internet."
+            }
         }
     }
 

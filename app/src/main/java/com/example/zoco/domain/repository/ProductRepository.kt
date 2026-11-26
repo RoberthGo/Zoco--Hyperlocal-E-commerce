@@ -15,5 +15,8 @@ interface ProductRepository {
     suspend fun deleteProduct(product: Product): Boolean
     suspend fun deleteProductById(id: Long): Boolean
     suspend fun syncProductsFromRemote(): Boolean
+
+    /** Sube a la Web API los productos creados/editados sin conexión. true si no quedó ninguno pendiente. */
+    suspend fun pushPending(): Boolean
     suspend fun populateInitialDataIfEmpty()
 }

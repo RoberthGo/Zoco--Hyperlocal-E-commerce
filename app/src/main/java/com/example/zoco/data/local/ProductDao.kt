@@ -37,6 +37,10 @@ interface ProductDao {
     @Query("DELETE FROM products WHERE id = :id")
     suspend fun deleteProductById(id: Long): Int
 
-    @Query("DELETE FROM products WHERE isRemote = 1 OR name LIKE '[En Línea]%' OR producerName LIKE '%[Web API]%'")
+    @Query("SELECT * FROM products WHERE pendingSync = 1")
+    suspend fun getPendingProducts(): List<ProductEntity>
+
+    /** Borra los productos descargados de la API, sin tocar los que aún esperan subirse. */
+    @Query("DELETE FROM products WHERE pendingSync = 0 AND (isRemote = 1 OR name LIKE '[En Línea]%' OR producerName LIKE '%[Web API]%')")
     suspend fun deleteRemoteProducts(): Int
 }

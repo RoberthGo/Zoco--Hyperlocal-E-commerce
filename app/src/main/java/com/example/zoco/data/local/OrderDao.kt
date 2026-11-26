@@ -38,6 +38,10 @@ interface OrderDao {
     @Query("DELETE FROM orders WHERE id = :id")
     suspend fun deleteOrderById(id: Long): Int
 
-    @Query("DELETE FROM orders WHERE isRemote = 1 OR customerName LIKE '[En Línea]%'")
+    @Query("SELECT * FROM orders WHERE pendingSync = 1")
+    suspend fun getPendingOrders(): List<OrderEntity>
+
+    /** Borra los pedidos descargados de la API, sin tocar los que aún esperan subirse. */
+    @Query("DELETE FROM orders WHERE pendingSync = 0 AND (isRemote = 1 OR customerName LIKE '[En Línea]%')")
     suspend fun deleteRemoteOrders(): Int
 }

@@ -1,5 +1,6 @@
 package com.example.zoco.data.local
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 import com.example.zoco.domain.model.Product
@@ -17,7 +18,9 @@ data class ProductEntity(
     val isExpressDelivery: Boolean,
     val inStock: Boolean,
     val isRemote: Boolean = false,
-    val stock: Int = 10
+    val stock: Int = 10,
+    @ColumnInfo(defaultValue = "0")
+    val pendingSync: Boolean = false
 ) {
     fun toDomain(imageUrl: String? = null): Product {
         val cat = runCatching { ProductCategory.valueOf(category) }.getOrDefault(ProductCategory.ALL)
@@ -32,7 +35,8 @@ data class ProductEntity(
             inStock = inStock && stock > 0,
             isRemote = isRemote,
             imageUrl = imageUrl,
-            stock = stock
+            stock = stock,
+            pendingSync = pendingSync
         )
     }
 
@@ -48,7 +52,8 @@ data class ProductEntity(
                 isExpressDelivery = product.isExpressDelivery,
                 inStock = product.inStock && product.stock > 0,
                 isRemote = product.isRemote,
-                stock = product.stock
+                stock = product.stock,
+                pendingSync = product.pendingSync
             )
         }
     }
