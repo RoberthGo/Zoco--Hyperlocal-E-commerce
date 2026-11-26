@@ -9,6 +9,9 @@ interface OrderRepository {
     suspend fun getOrderById(id: Long): Order?
     suspend fun createOrder(order: Order, items: List<CartItem>): Long
     suspend fun syncOrdersFromRemote(): Boolean
+
+    /** Sube a la Web API los pedidos creados sin conexión. true si no quedó ninguno pendiente. */
+    suspend fun pushPending(): Boolean
     suspend fun populateInitialOrdersIfEmpty()
     suspend fun deleteOrder(id: Long): Boolean
 }

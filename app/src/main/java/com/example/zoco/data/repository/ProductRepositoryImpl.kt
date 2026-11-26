@@ -11,10 +11,12 @@ import com.example.zoco.data.remote.dto.ProductDto
 import com.example.zoco.domain.model.Product
 import com.example.zoco.domain.model.ProductCategory
 import com.example.zoco.domain.repository.ProductRepository
+import com.example.zoco.domain.sync.SyncScheduler
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import java.io.IOException
 
 /**
  * Repositorio híbrido (Single Source of Truth con Room + Retrofit + MediaDao).
@@ -25,7 +27,8 @@ import kotlinx.coroutines.flow.map
 class ProductRepositoryImpl(
     private val productDao: ProductDao,
     private val customApiService: ProductApiService? = null,
-    private val mediaDao: MediaDao? = null
+    private val mediaDao: MediaDao? = null,
+    private val syncScheduler: SyncScheduler? = null
 ) : ProductRepository {
 
     private val productApiService: ProductApiService
@@ -76,8 +79,10 @@ class ProductRepositoryImpl(
     }
 
     override suspend fun insertProductWithMedia(product: Product, mediaUri: String?): Long {
-        // 1. Guardar primero en la base de datos local (Room)
-        val localId = productDao.insertProduct(ProductEntity.fromDomain(product))
+        // 1. Guardar primero en Room, marcado como PENDIENTE de subir (cola offline-first)
+        val localId = productDao.insertProduct(
+            ProductEntity.fromDomain(product).copy(isRemote = false, pendingSync = true)
+        )
 
         // 2. Guardar multimedia en MediaDao si se proporcionó URI
         if (!mediaUri.isNullOrBlank() && mediaDao != null) {
@@ -96,15 +101,9 @@ class ProductRepositoryImpl(
             }
         }
 
-        // 3. CONEXIÓN WEB API: Enviar sincronización POST a la API remota de manera segura
-        try {
-            val productToSend = product.copy(id = localId)
-            val remoteResult = productApiService.createProduct(ProductDto.fromDomain(productToSend))
-            Log.d(TAG, "Producto sincronizado con éxito en Web API: id=${remoteResult.id}")
-        } catch (e: Exception) {
-            // Si la API remota no está encendida aún o no hay internet, registramos advertencia sin tronar la app
-            Log.w(TAG, "No se pudo sincronizar producto con API remota (modo offline activo): ${e.message}")
-        }
+        // 3. CONEXIÓN WEB API: intentar subirlo ya; si falla queda pendiente y WorkManager
+        //    lo reintenta en cuanto haya red (ver SyncPendingWorker).
+        pushNowOrSchedule(localId)
 
         return localId
     }
@@ -118,8 +117,10 @@ class ProductRepositoryImpl(
     }
 
     override suspend fun updateProduct(product: Product): Boolean {
-        // 1. Actualizar en Room localmente
-        val rowsAffected = productDao.updateProduct(ProductEntity.fromDomain(product))
+        // 1. Actualizar en Room localmente, marcado como PENDIENTE de subir
+        val rowsAffected = productDao.updateProduct(
+            ProductEntity.fromDomain(product).copy(pendingSync = true)
+        )
 
         if (!product.imageUrl.isNullOrBlank() && mediaDao != null) {
             try {
@@ -135,17 +136,71 @@ class ProductRepositoryImpl(
             } catch (_: Exception) {}
         }
 
-        // 2. CONEXIÓN WEB API: Enviar sincronización PUT al servidor remoto
+        // 2. CONEXIÓN WEB API: PUT (o POST si nunca se había subido); si falla, queda en la cola
         if (rowsAffected > 0) {
-            try {
-                productApiService.updateProduct(product.id, ProductDto.fromDomain(product))
-                Log.d(TAG, "Actualización enviada con éxito a Web API: id=${product.id}")
-            } catch (e: Exception) {
-                Log.w(TAG, "No se pudo actualizar producto en API remota (se conserva cambio local): ${e.message}")
-            }
+            pushNowOrSchedule(product.id)
         }
 
         return rowsAffected > 0
+    }
+
+    /** Intenta subir un producto ahora mismo; si no se puede, agenda el reintento en segundo plano. */
+    private suspend fun pushNowOrSchedule(productId: Long) {
+        val entity = productDao.getProductById(productId) ?: return
+        try {
+            pushOne(entity)
+        } catch (e: Exception) {
+            Log.w(TAG, "Sin conexión con la API; producto id=$productId queda pendiente: ${e.message}")
+            syncScheduler?.scheduleSync()
+        }
+    }
+
+    /**
+     * Sube UN producto pendiente. Lanza excepción si falla (red o HTTP).
+     * - No existe aún en el servidor (isRemote = false): POST y se reemplaza la fila local por la
+     *   que devuelve el servidor (id del servidor, isRemote = true) re-asociando su multimedia.
+     * - Ya existe en el servidor (isRemote = true): PUT y se limpia la marca de pendiente.
+     */
+    private suspend fun pushOne(entity: ProductEntity) {
+        val dto = ProductDto.fromDomain(entity.toDomain())
+        if (entity.isRemote) {
+            productApiService.updateProduct(entity.id, dto)
+            productDao.insertProduct(entity.copy(pendingSync = false))
+            Log.d(TAG, "Edición subida a la Web API: id=${entity.id}")
+        } else {
+            val created = productApiService.createProduct(dto.copy(id = 0))
+            val serverEntity = ProductEntity.fromDomain(created.toDomain())
+                .copy(isRemote = true, pendingSync = false)
+            productDao.deleteProductById(entity.id)
+            productDao.insertProduct(serverEntity)
+            if (serverEntity.id != entity.id) {
+                try {
+                    mediaDao?.reassignMedia(entity.id, serverEntity.id)
+                } catch (_: Exception) {}
+            }
+            Log.d(TAG, "Producto subido a la Web API: id local=${entity.id} -> id servidor=${serverEntity.id}")
+        }
+    }
+
+    /**
+     * Vacía la cola: sube todos los productos con pendingSync = 1.
+     * Se detiene al primer error de red (no tiene caso esperar N timeouts); un error HTTP de un
+     * producto no bloquea a los demás. Devuelve true solo si no quedó nada pendiente.
+     */
+    override suspend fun pushPending(): Boolean {
+        var allPushed = true
+        for (entity in productDao.getPendingProducts().sortedBy { it.id }) {
+            try {
+                pushOne(entity)
+            } catch (e: IOException) {
+                Log.w(TAG, "Sin red al subir pendientes: ${e.message}")
+                return false
+            } catch (e: Exception) {
+                Log.w(TAG, "No se pudo subir producto id=${entity.id}: ${e.message}")
+                allPushed = false
+            }
+        }
+        return allPushed
     }
 
     override suspend fun deleteProduct(product: Product): Boolean {
@@ -153,25 +208,30 @@ class ProductRepositoryImpl(
     }
 
     override suspend fun deleteProductById(id: Long): Boolean {
-        // Eliminar multimedia vinculada
+        val entity = productDao.getProductById(id) ?: return false
+
+        // Regla: ELIMINAR solo con internet. Si el producto existe en el servidor, primero se borra
+        // allá; si no hay conexión (o el servidor rechaza) NO se toca nada local y se devuelve false.
+        if (entity.isRemote) {
+            try {
+                val response = productApiService.deleteProduct(id)
+                if (!response.isSuccessful && response.code() != 404) {
+                    Log.w(TAG, "La Web API rechazó eliminar id=$id (HTTP ${response.code()})")
+                    return false
+                }
+                Log.d(TAG, "Baja enviada con éxito a Web API: id=$id")
+            } catch (e: Exception) {
+                Log.w(TAG, "Sin conexión: no se puede eliminar producto id=$id: ${e.message}")
+                return false
+            }
+        }
+
+        // Producto solo local (nunca subido) o ya borrado en el servidor: limpiar Room y multimedia
         try {
             mediaDao?.deleteMediaByProductId(id)
         } catch (_: Exception) {}
 
-        // 1. Eliminar de Room localmente
-        val rowsDeleted = productDao.deleteProductById(id)
-
-        // 2. CONEXIÓN WEB API: Enviar sincronización DELETE al servidor remoto
-        if (rowsDeleted > 0) {
-            try {
-                productApiService.deleteProduct(id)
-                Log.d(TAG, "Baja enviada con éxito a Web API: id=$id")
-            } catch (e: Exception) {
-                Log.w(TAG, "No se pudo eliminar producto en API remota: ${e.message}")
-            }
-        }
-
-        return rowsDeleted > 0
+        return productDao.deleteProductById(id) > 0
     }
 
     /**
@@ -210,16 +270,19 @@ class ProductRepositoryImpl(
         return try {
             val remoteProducts = productApiService.getProducts()
             if (remoteProducts.isNotEmpty()) {
+                // deleteRemoteProducts() ya respeta las filas pendientes; además no se pisa con la
+                // versión del servidor ningún producto cuyo cambio local aún no se ha subido.
                 productDao.deleteRemoteProducts()
-                val entities = remoteProducts.map { 
-                    ProductEntity.fromDomain(it.toDomain()).copy(isRemote = true)
-                }
+                val pendingIds = productDao.getPendingProducts().map { it.id }.toSet()
+                val entities = remoteProducts
+                    .filter { it.id !in pendingIds }
+                    .map { ProductEntity.fromDomain(it.toDomain()).copy(isRemote = true, pendingSync = false) }
                 productDao.insertProducts(entities)
                 Log.d(TAG, "Sincronización remota completada: ${entities.size} productos descargados desde ${RetrofitClient.currentBaseUrl}")
-                true
-            } else {
-                false
             }
+            // El servidor respondió: aprovechar la conexión para subir lo que quedó pendiente offline
+            pushPending()
+            remoteProducts.isNotEmpty()
         } catch (e: Exception) {
             false
         }

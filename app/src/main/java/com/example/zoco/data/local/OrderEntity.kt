@@ -1,5 +1,6 @@
 package com.example.zoco.data.local
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 import com.example.zoco.domain.model.Order
@@ -17,7 +18,12 @@ data class OrderEntity(
     val isExpress: Boolean = false,
     val itemSummary: String = "",
     val createdAt: Long = System.currentTimeMillis(),
-    val isRemote: Boolean = false
+    val isRemote: Boolean = false,
+    @ColumnInfo(defaultValue = "0")
+    val pendingSync: Boolean = false,
+    // Renglones del pedido serializados (List<OrderItemDto> en JSON) para poder reenviar el POST.
+    @ColumnInfo(defaultValue = "''")
+    val itemsJson: String = ""
 ) {
     fun toDomain(): Order {
         return Order(

@@ -24,6 +24,7 @@
     <string name="delete_product_description">Eliminar de base de datos y Web API</string>
     <string name="badge_online_api">En Línea (Web API)</string>
     <string name="badge_local_room">Local (Room SQLite)</string>
+    <string name="badge_pending_sync">Pendiente de subir</string>
 
     <!-- Cart Screen -->
     <string name="cart_title">Mi Pedido Local</string>

@@ -19,5 +19,6 @@ data class Product(
     val inStock: Boolean = true,
     val isRemote: Boolean = false,
     val imageUrl: String? = null,
-    val stock: Int = 10
+    val stock: Int = 10,
+    val pendingSync: Boolean = false
 )

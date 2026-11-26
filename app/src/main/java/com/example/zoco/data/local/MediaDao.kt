@@ -32,6 +32,9 @@ interface MediaDao {
     @Delete
     suspend fun deleteMedia(media: MediaEntity): Int
 
+    @Query("UPDATE media SET productId = :newId WHERE productId = :oldId")
+    suspend fun reassignMedia(oldId: Long, newId: Long): Int
+
     @Query("DELETE FROM media WHERE productId = :productId")
     suspend fun deleteMediaByProductId(productId: Long): Int
 }

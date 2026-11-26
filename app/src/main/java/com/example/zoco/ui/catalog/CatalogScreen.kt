@@ -320,7 +320,11 @@ fun ProductItemCard(
                     color = if (isOnline) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.secondaryContainer
                 ) {
                     Text(
-                        text = if (isOnline) stringResource(R.string.badge_online_api) else stringResource(R.string.badge_local_room),
+                        text = when {
+                            product.pendingSync -> stringResource(R.string.badge_pending_sync)
+                            isOnline -> stringResource(R.string.badge_online_api)
+                            else -> stringResource(R.string.badge_local_room)
+                        },
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
                         color = if (isOnline) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSecondaryContainer,

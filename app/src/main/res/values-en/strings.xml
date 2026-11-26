@@ -24,6 +24,7 @@
     <string name="delete_product_description">Delete from database and Web API</string>
     <string name="badge_online_api">Online (Web API)</string>
     <string name="badge_local_room">Local (Room SQLite)</string>
+    <string name="badge_pending_sync">Pending upload</string>
 
     <!-- Cart Screen -->
     <string name="cart_title">My Local Order</string>
