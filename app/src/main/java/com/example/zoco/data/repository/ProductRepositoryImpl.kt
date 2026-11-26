@@ -168,7 +168,9 @@ class ProductRepositoryImpl(
             productDao.insertProduct(entity.copy(pendingSync = false))
             Log.d(TAG, "Edición subida a la Web API: id=${entity.id}")
         } else {
-            val created = productApiService.createProduct(dto.copy(id = 0))
+            // Se manda el id local tal como hacía el código original (comportamiento ya probado
+            // con el backend); la fila local se reemplaza por la que devuelve el servidor.
+            val created = productApiService.createProduct(dto)
             val serverEntity = ProductEntity.fromDomain(created.toDomain())
                 .copy(isRemote = true, pendingSync = false)
             productDao.deleteProductById(entity.id)

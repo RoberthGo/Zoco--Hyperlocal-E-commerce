@@ -140,7 +140,7 @@ class ProductRepositoryImplTest {
         assertTrue(serverRow!!.isRemote)
         assertFalse(serverRow.pendingSync)
         assertEquals(0, scheduler.calls)
-        assertEquals(0L, api.created.single().id)           // se crea sin mandar el id local
+        assertEquals(localId, api.created.single().id)      // se manda el id local, como el código original
     }
 
     @Test
