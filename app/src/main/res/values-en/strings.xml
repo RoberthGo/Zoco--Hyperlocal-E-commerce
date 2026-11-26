@@ -151,4 +151,8 @@
     <string name="order_status_out_for_delivery">On the way</string>
     <string name="order_status_delivered">Delivered</string>
     <string name="order_status_cancelled">Cancelled</string>
+    <string name="unit_price_label">Unit price:</string>
+    <string name="quantity_decrease">Less</string>
+    <string name="quantity_increase">More</string>
+    <string name="pick_product_hint">Pick a product from the list to see its details and buy it.</string>
 </resources>

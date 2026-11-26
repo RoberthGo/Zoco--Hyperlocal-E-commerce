@@ -12,6 +12,19 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.ActivityResultRegistryOwner
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
+import androidx.compose.material3.NavigationDrawerItem
+import androidx.compose.material3.PermanentDrawerSheet
+import androidx.compose.material3.PermanentNavigationDrawer
+import com.example.zoco.domain.model.UserSession
+import com.example.zoco.ui.common.Breakpoints
+import com.example.zoco.ui.common.LocalWindowSize
+import com.example.zoco.ui.common.WidthClass
+import com.example.zoco.ui.common.WindowSize
+import com.example.zoco.ui.common.roleText
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Badge
@@ -61,9 +74,6 @@ import com.example.zoco.ui.seller.SellerViewModel
 import com.example.zoco.ui.theme.ZocoTheme
 import java.util.Locale
 
-/** Ancho a partir del cual se usa la barra lateral (tablets) en vez de la barra inferior (celulares). */
-private val WIDE_SCREEN_MIN_WIDTH = 600.dp
-
 /** Única Activity de la app: arma las piezas compartidas y muestra [ZocoApp]. */
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -93,8 +103,9 @@ class MainActivity : ComponentActivity() {
 /**
  * Pantalla raíz. Decide qué se ve:
  *  - sin sesión iniciada  -> pantalla de login/registro
- *  - con sesión, pantalla ancha  -> barra lateral + contenido
- *  - con sesión, pantalla angosta -> contenido + barra inferior
+ *  - con sesión: el menú cambia según el tamaño de la ventana (ver [navigationStyleFor]):
+ *      celular en vertical -> barra inferior; plegable/tablet pequeña -> columna de íconos;
+ *      tablet grande -> menú lateral con nombres y datos de la persona
  * Las pestañas visibles dependen del rol del usuario (ver [Screen.visibleFor]).
  */
 @Composable
@@ -167,70 +178,185 @@ fun ZocoApp(
         )
     }
 
-    // --- 4. Pantalla según idioma y estado de sesión ---
+    // --- 4. Pantalla según idioma, tamaño de ventana y estado de sesión ---
     LanguageProvider(languageTag = profileState.selectedLanguage) {
         BoxWithConstraints(modifier = modifier.fillMaxSize()) {
-            val isWideScreen = maxWidth >= WIDE_SCREEN_MIN_WIDTH
-
-            when {
-                !isLoggedIn -> Scaffold(
-                    snackbarHost = { SnackbarHost(snackbarHostState) },
-                    topBar = { ZocoTopBar(title = stringResource(R.string.app_name)) }
-                ) { innerPadding ->
-                    AuthScreen(
-                        uiState = authState,
-                        onLogin = authViewModel::login,
-                        onRegister = authViewModel::register,
-                        onClearError = authViewModel::clearError,
-                        modifier = Modifier.padding(innerPadding)
-                    )
-                }
-
-                isWideScreen -> Row(modifier = Modifier.fillMaxSize()) {
-                    NavigationRail {
-                        visibleScreens.forEach { screen ->
-                            NavigationRailItem(
-                                selected = currentScreen == screen,
-                                onClick = { navigateToTab(navController, screen, currentRoute) },
-                                icon = { TabIcon(screen, cartItemCount = cartState.items.size) },
-                                label = { Text(stringResource(screen.titleResId)) }
-                            )
-                        }
-                    }
+            val windowSize = WindowSize(
+                widthClass = Breakpoints.widthClassFor(maxWidth),
+                isShort = maxHeight < Breakpoints.SHORT_HEIGHT
+            )
+            CompositionLocalProvider(LocalWindowSize provides windowSize) {
+                if (!isLoggedIn) {
                     Scaffold(
                         snackbarHost = { SnackbarHost(snackbarHostState) },
-                        topBar = {
-                            ZocoTopBar(
-                                title = stringResource(R.string.app_name) + " - " + stringResource(currentScreen.titleResId)
-                            )
-                        }
+                        topBar = { ZocoTopBar(title = stringResource(R.string.app_name)) }
                     ) { innerPadding ->
-                        tabsContent(Modifier.padding(innerPadding))
+                        AuthScreen(
+                            uiState = authState,
+                            onLogin = authViewModel::login,
+                            onRegister = authViewModel::register,
+                            onClearError = authViewModel::clearError,
+                            modifier = Modifier.padding(innerPadding)
+                        )
                     }
-                }
-
-                else -> Scaffold(
-                    snackbarHost = { SnackbarHost(snackbarHostState) },
-                    topBar = { ZocoTopBar(title = stringResource(R.string.app_name)) },
-                    bottomBar = {
-                        NavigationBar {
-                            visibleScreens.forEach { screen ->
-                                NavigationBarItem(
-                                    selected = currentScreen == screen,
-                                    onClick = { navigateToTab(navController, screen, currentRoute) },
-                                    icon = { TabIcon(screen, cartItemCount = cartState.items.size) },
-                                    label = { Text(stringResource(screen.titleResId)) }
-                                )
-                            }
-                        }
+                } else {
+                    val menu = MenuState(
+                        screens = visibleScreens,
+                        current = currentScreen,
+                        cartItemCount = cartState.items.size,
+                        onSelect = { navigateToTab(navController, it, currentRoute) }
+                    )
+                    when (navigationStyleFor(windowSize)) {
+                        NavigationStyle.BOTTOM_BAR -> BottomBarLayout(menu, snackbarHostState, tabsContent)
+                        NavigationStyle.SIDE_RAIL -> SideRailLayout(menu, currentScreen, snackbarHostState, tabsContent)
+                        NavigationStyle.SIDE_DRAWER -> SideDrawerLayout(
+                            menu = menu,
+                            session = session,
+                            snackbarHostState = snackbarHostState,
+                            content = tabsContent
+                        )
                     }
-                ) { innerPadding ->
-                    tabsContent(Modifier.padding(innerPadding))
                 }
             }
         }
     }
 }
+
+/** Qué menú de navegación se usa en cada tamaño de ventana. */
+private enum class NavigationStyle {
+    /** Celular en vertical: barra abajo. */
+    BOTTOM_BAR,
+
+    /** Plegable, tablet pequeña o celular en horizontal: columna de íconos a la izquierda. */
+    SIDE_RAIL,
+
+    /** Tablet grande o escritorio: menú lateral con íconos y nombres. */
+    SIDE_DRAWER
+}
+
+private fun navigationStyleFor(size: WindowSize): NavigationStyle = when {
+    size.isCompact -> NavigationStyle.BOTTOM_BAR
+    size.widthClass == WidthClass.MEDIUM || size.isShort -> NavigationStyle.SIDE_RAIL
+    else -> NavigationStyle.SIDE_DRAWER
+}
+
+/** Todo lo que necesita un menú de navegación para dibujarse. */
+private class MenuState(
+    val screens: List<Screen>,
+    val current: Screen,
+    val cartItemCount: Int,
+    val onSelect: (Screen) -> Unit
+)
+
+/** Celular: contenido arriba y barra de pestañas abajo. */
+@Composable
+private fun BottomBarLayout(
+    menu: MenuState,
+    snackbarHostState: SnackbarHostState,
+    content: @Composable (Modifier) -> Unit
+) {
+    Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+        topBar = { ZocoTopBar(title = stringResource(R.string.app_name)) },
+        bottomBar = {
+            NavigationBar {
+                menu.screens.forEach { screen ->
+                    NavigationBarItem(
+                        selected = menu.current == screen,
+                        onClick = { menu.onSelect(screen) },
+                        icon = { TabIcon(screen, menu.cartItemCount) },
+                        label = { Text(stringResource(screen.titleResId)) }
+                    )
+                }
+            }
+        }
+    ) { innerPadding -> content(Modifier.padding(innerPadding)) }
+}
+
+/** Plegable o tablet pequeña: columna de íconos a la izquierda y contenido a la derecha. */
+@Composable
+private fun SideRailLayout(
+    menu: MenuState,
+    currentScreen: Screen,
+    snackbarHostState: SnackbarHostState,
+    content: @Composable (Modifier) -> Unit
+) {
+    Row(modifier = Modifier.fillMaxSize()) {
+        NavigationRail {
+            menu.screens.forEach { screen ->
+                NavigationRailItem(
+                    selected = menu.current == screen,
+                    onClick = { menu.onSelect(screen) },
+                    icon = { TabIcon(screen, menu.cartItemCount) },
+                    label = { Text(stringResource(screen.titleResId)) }
+                )
+            }
+        }
+        Scaffold(
+            snackbarHost = { SnackbarHost(snackbarHostState) },
+            topBar = {
+                ZocoTopBar(title = stringResource(R.string.app_name) + " - " + stringResource(currentScreen.titleResId))
+            }
+        ) { innerPadding -> content(Modifier.padding(innerPadding)) }
+    }
+}
+
+/** Tablet grande: menú lateral fijo con el nombre de la persona y su rol, y el contenido al lado. */
+@Composable
+private fun SideDrawerLayout(
+    menu: MenuState,
+    session: UserSession,
+    snackbarHostState: SnackbarHostState,
+    content: @Composable (Modifier) -> Unit
+) {
+    PermanentNavigationDrawer(
+        drawerContent = {
+            PermanentDrawerSheet(modifier = Modifier.width(DRAWER_WIDTH)) {
+                DrawerHeader(session)
+                menu.screens.forEach { screen ->
+                    NavigationDrawerItem(
+                        selected = menu.current == screen,
+                        onClick = { menu.onSelect(screen) },
+                        icon = { TabIcon(screen, menu.cartItemCount) },
+                        label = { Text(stringResource(screen.titleResId)) },
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 2.dp)
+                    )
+                }
+            }
+        }
+    ) {
+        Scaffold(
+            snackbarHost = { SnackbarHost(snackbarHostState) },
+            topBar = { ZocoTopBar(title = stringResource(menu.current.titleResId)) }
+        ) { innerPadding -> content(Modifier.padding(innerPadding)) }
+    }
+}
+
+/** Parte de arriba del menú lateral: nombre de la app, de la persona y su rol. */
+@Composable
+private fun DrawerHeader(session: UserSession) {
+    Column(modifier = Modifier.padding(start = 24.dp, end = 24.dp, top = 28.dp, bottom = 20.dp)) {
+        Text(
+            text = stringResource(R.string.app_name),
+            style = MaterialTheme.typography.headlineMedium,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.primary
+        )
+        Spacer(Modifier.height(16.dp))
+        Text(
+            text = session.fullName.ifBlank { session.username },
+            style = MaterialTheme.typography.titleMedium,
+            maxLines = 1
+        )
+        Text(
+            text = roleText(session.role),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
+
+private val DRAWER_WIDTH = 280.dp
 
 /** Barra superior con el color principal de la app. */
 @OptIn(ExperimentalMaterial3Api::class)

@@ -41,6 +41,10 @@ interface OrderDao {
     @Query("SELECT * FROM orders WHERE pendingSync = 1")
     suspend fun getPendingOrders(): List<OrderEntity>
 
+    /** Borra los 2 pedidos de ejemplo (ids 101 y 102, estado LOCAL_STORED) que guardaban versiones anteriores. */
+    @Query("DELETE FROM orders WHERE id IN (101, 102) AND status = 'LOCAL_STORED' AND isRemote = 0 AND pendingSync = 0")
+    suspend fun deleteOldSampleOrders(): Int
+
     /** Borra los pedidos descargados de la API, sin tocar los que aún esperan subirse. */
     @Query("DELETE FROM orders WHERE pendingSync = 0 AND (isRemote = 1 OR customerName LIKE '[En Línea]%')")
     suspend fun deleteRemoteOrders(): Int

@@ -60,7 +60,7 @@ class CartViewModel(
         }
         orderRepository?.let { repo ->
             viewModelScope.launch {
-                repo.populateInitialOrdersIfEmpty()
+                repo.removeSampleOrders()
                 val success = repo.syncOrdersFromRemote()
                 _isApiActive.value = success
             }

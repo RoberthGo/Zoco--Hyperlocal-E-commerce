@@ -16,7 +16,9 @@ interface OrderRepository {
 
     /** Sube a la Web API los pedidos creados sin conexión. true si no quedó ninguno pendiente. */
     suspend fun pushPending(): Boolean
-    suspend fun populateInitialOrdersIfEmpty()
+
+    /** Borra los pedidos de ejemplo con nombres inventados que versiones anteriores de la app guardaron. */
+    suspend fun removeSampleOrders()
     suspend fun updateOrderStatus(orderId: Long, newStatus: String): Boolean
     suspend fun deleteOrder(id: Long): Boolean
 }

@@ -375,5 +375,18 @@ class ProductRepositoryImpl(
         if (productDao.getProductCount() == 0) {
             productDao.insertProducts(SampleData.products)
         }
+        addSamplePhotos()
+    }
+
+    /** Pone la foto de ejemplo a los productos de ejemplo que todavía no tienen una (también en instalaciones anteriores). */
+    private suspend fun addSamplePhotos() {
+        val media = mediaDao ?: return
+        SampleData.productPhotos.forEach { (productId, uri) ->
+            val isInCatalog = productDao.getProductById(productId) != null
+            val hasPhoto = media.getMediaByProductId(productId).first().isNotEmpty()
+            if (isInCatalog && !hasPhoto) {
+                media.insertMedia(MediaEntity(productId = productId, uri = uri, mediaType = "IMAGE", description = "Foto de ejemplo"))
+            }
+        }
     }
 }

@@ -1,8 +1,9 @@
 package com.example.zoco.ui
 
 import androidx.compose.ui.unit.dp
-import com.example.zoco.ui.common.AdaptiveBreakpoints
-import com.example.zoco.ui.common.WindowWidthSizeClass
+import com.example.zoco.ui.common.Breakpoints
+import com.example.zoco.ui.common.WidthClass
+import com.example.zoco.ui.common.WindowSize
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -11,52 +12,39 @@ import org.junit.Test
 class AdaptiveLayoutTest {
 
     @Test
-    fun compactPhone_resolvesToCompactSizeClass() {
-        // Teléfonos verticales estándar (pantallas estrechas < 600dp)
-        val phoneWidthSmall = 360.dp
-        val phoneWidthStandard = 411.dp
-        val phoneWidthLarge = 599.dp
-
-        assertEquals(WindowWidthSizeClass.COMPACT, AdaptiveBreakpoints.getWidthSizeClass(phoneWidthSmall))
-        assertEquals(WindowWidthSizeClass.COMPACT, AdaptiveBreakpoints.getWidthSizeClass(phoneWidthStandard))
-        assertEquals(WindowWidthSizeClass.COMPACT, AdaptiveBreakpoints.getWidthSizeClass(phoneWidthLarge))
+    fun narrowPhone_isCompact() {
+        assertEquals(WidthClass.COMPACT, Breakpoints.widthClassFor(360.dp))
+        assertEquals(WidthClass.COMPACT, Breakpoints.widthClassFor(411.dp))
+        assertEquals(WidthClass.COMPACT, Breakpoints.widthClassFor(599.dp))
     }
 
     @Test
-    fun foldableAndSmallTablet_resolvesToMediumSizeClass() {
-        // Dispositivos plegables, tablets pequeñas o teléfonos en horizontal (600dp a 839dp)
-        val foldableWidth = 600.dp
-        val landscapePhoneWidth = 720.dp
-        val smallTabletWidth = 839.dp
-
-        assertEquals(WindowWidthSizeClass.MEDIUM, AdaptiveBreakpoints.getWidthSizeClass(foldableWidth))
-        assertEquals(WindowWidthSizeClass.MEDIUM, AdaptiveBreakpoints.getWidthSizeClass(landscapePhoneWidth))
-        assertEquals(WindowWidthSizeClass.MEDIUM, AdaptiveBreakpoints.getWidthSizeClass(smallTabletWidth))
+    fun foldableAndSmallTablet_isMedium() {
+        assertEquals(WidthClass.MEDIUM, Breakpoints.widthClassFor(600.dp))
+        assertEquals(WidthClass.MEDIUM, Breakpoints.widthClassFor(720.dp))
+        assertEquals(WidthClass.MEDIUM, Breakpoints.widthClassFor(839.dp))
     }
 
     @Test
-    fun largeTabletAndDesktop_resolvesToExpandedSizeClass() {
-        // Tablets grandes de 10"+ o pantallas de escritorio (>= 840dp)
-        val largeTabletWidth = 840.dp
-        val fullTabletWidth = 1024.dp
-        val desktopWidth = 1280.dp
-
-        assertEquals(WindowWidthSizeClass.EXPANDED, AdaptiveBreakpoints.getWidthSizeClass(largeTabletWidth))
-        assertEquals(WindowWidthSizeClass.EXPANDED, AdaptiveBreakpoints.getWidthSizeClass(fullTabletWidth))
-        assertEquals(WindowWidthSizeClass.EXPANDED, AdaptiveBreakpoints.getWidthSizeClass(desktopWidth))
+    fun largeTabletAndDesktop_isExpanded() {
+        assertEquals(WidthClass.EXPANDED, Breakpoints.widthClassFor(840.dp))
+        assertEquals(WidthClass.EXPANDED, Breakpoints.widthClassFor(1024.dp))
+        assertEquals(WidthClass.EXPANDED, Breakpoints.widthClassFor(1280.dp))
     }
 
     @Test
-    fun sellerLayoutMode_isTwoPaneOnlyOnWideScreens() {
-        // En pantallas grandes (>= 600dp), Vender activa el modo dos paneles (Formulario + Vista Previa)
-        val compactWidth = 411.dp
-        val wideWidth = 600.dp
-        val tabletWidth = 800.dp
+    fun twoColumns_areOnlyUsedWhenThereIsRoom() {
+        assertFalse(WindowSize(WidthClass.COMPACT, isShort = false).hasRoomForTwoColumns)
+        assertTrue(WindowSize(WidthClass.MEDIUM, isShort = false).hasRoomForTwoColumns)
+        assertTrue(WindowSize(WidthClass.EXPANDED, isShort = false).hasRoomForTwoColumns)
+    }
 
-        fun isWideScreen(width: androidx.compose.ui.unit.Dp): Boolean = width >= 600.dp
-
-        assertFalse("Teléfono estándar no debe dividir en dos paneles", isWideScreen(compactWidth))
-        assertTrue("Pantallas >=600dp deben activar dos paneles", isWideScreen(wideWidth))
-        assertTrue("Tablets deben activar dos paneles", isWideScreen(tabletWidth))
+    @Test
+    fun phoneInLandscape_isShortButExpanded() {
+        val width = 891.dp
+        val height = 411.dp
+        val size = WindowSize(Breakpoints.widthClassFor(width), isShort = height < Breakpoints.SHORT_HEIGHT)
+        assertTrue(size.isExpanded)
+        assertTrue(size.isShort)
     }
 }

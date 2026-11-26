@@ -2,7 +2,6 @@ package com.example.zoco.data.repository
 
 import android.util.Log
 import com.example.zoco.data.local.OrderDao
-import com.example.zoco.data.local.SampleData
 import com.example.zoco.data.local.OrderEntity
 import com.example.zoco.data.remote.RetrofitClient
 import com.example.zoco.data.remote.api.OrderApiService
@@ -179,11 +178,8 @@ class OrderRepositoryImpl(
         }
     }
 
-    /** Si la base local está vacía, carga pedidos de ejemplo (ver [SampleData]). */
-    override suspend fun populateInitialOrdersIfEmpty() {
-        if (orderDao.getOrderCount() == 0) {
-            orderDao.insertOrders(SampleData.orders())
-        }
+    override suspend fun removeSampleOrders() {
+        orderDao.deleteOldSampleOrders()
     }
 
     override suspend fun updateOrderStatus(orderId: Long, newStatus: String): Boolean {
