@@ -238,7 +238,9 @@ fun CatalogScreen(
                     onDeleteProduct = { product ->
                         onDeleteProduct(product)
                     },
-                    isInternetAvailable = uiState.isInternetAvailable
+                    isInternetAvailable = uiState.isInternetAvailable,
+                    canDeleteProduct = { product -> uiState.canDelete(product) },
+                    isOwnProduct = { product -> uiState.isOwnProduct(product) }
                 )
             }
         }
@@ -284,6 +286,8 @@ fun ProductItemCard(
     onAddToCart: () -> Unit,
     onDelete: () -> Unit = {},
     isInternetAvailable: Boolean = true,
+    canDelete: Boolean = product.isOwnedByUser,
+    isOwnProduct: Boolean = product.isOwnedByUser,
     modifier: Modifier = Modifier
 ) {
     Card(
@@ -393,16 +397,32 @@ fun ProductItemCard(
                 }
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    if (product.isOwnedByUser) {
+                    if (isOwnProduct && product.id != 0L) {
+                        Surface(
+                            shape = RoundedCornerShape(6.dp),
+                            color = MaterialTheme.colorScheme.tertiaryContainer
+                        ) {
+                            Text(
+                                text = stringResource(R.string.badge_yours),
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onTertiaryContainer,
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.size(4.dp))
+                    }
+                    if (canDelete) {
+                        val deleteEnabled = isInternetAvailable || !product.isRemote
                         IconButton(
                             onClick = onDelete,
-                            enabled = isInternetAvailable,
+                            enabled = deleteEnabled,
                             modifier = Modifier.size(36.dp)
                         ) {
                             Icon(
                                 Icons.Default.Delete,
                                 contentDescription = stringResource(R.string.delete_product_description),
-                                tint = if (isInternetAvailable) {
+                                tint = if (deleteEnabled) {
                                     MaterialTheme.colorScheme.error.copy(alpha = 0.8f)
                                 } else {
                                     MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)

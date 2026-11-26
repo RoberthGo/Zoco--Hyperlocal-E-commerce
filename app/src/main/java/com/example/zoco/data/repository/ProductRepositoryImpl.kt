@@ -172,7 +172,7 @@ class ProductRepositoryImpl(
             // con el backend); la fila local se reemplaza por la que devuelve el servidor.
             val created = productApiService.createProduct(dto)
             val serverEntity = ProductEntity.fromDomain(created.toDomain())
-                .copy(isRemote = true, pendingSync = false)
+                .copy(isRemote = true, pendingSync = false, isOwnedByUser = entity.isOwnedByUser)
             productDao.deleteProductById(entity.id)
             productDao.insertProduct(serverEntity)
             if (serverEntity.id != entity.id) {
@@ -303,7 +303,9 @@ class ProductRepositoryImpl(
                     isExpressDelivery = true,
                     inStock = true,
                     isRemote = false,
-                    stock = 15
+                    stock = 15,
+                    sellerId = 2L,
+                    sellerUsername = "vendedor_juan"
                 ),
                 ProductEntity(
                     id = 102,
@@ -315,7 +317,9 @@ class ProductRepositoryImpl(
                     isExpressDelivery = true,
                     inStock = true,
                     isRemote = false,
-                    stock = 8
+                    stock = 8,
+                    sellerId = 2L,
+                    sellerUsername = "vendedor_juan"
                 ),
                 ProductEntity(
                     id = 103,
@@ -327,7 +331,9 @@ class ProductRepositoryImpl(
                     isExpressDelivery = false,
                     inStock = true,
                     isRemote = false,
-                    stock = 12
+                    stock = 12,
+                    sellerId = 2L,
+                    sellerUsername = "vendedor_juan"
                 ),
                 ProductEntity(
                     id = 104,
@@ -339,7 +345,9 @@ class ProductRepositoryImpl(
                     isExpressDelivery = false,
                     inStock = true,
                     isRemote = false,
-                    stock = 5
+                    stock = 5,
+                    sellerId = 4L,
+                    sellerUsername = "artesana_maria"
                 ),
                 ProductEntity(
                     id = 105,
@@ -351,7 +359,9 @@ class ProductRepositoryImpl(
                     isExpressDelivery = true,
                     inStock = true,
                     isRemote = false,
-                    stock = 20
+                    stock = 20,
+                    sellerId = 4L,
+                    sellerUsername = "artesana_maria"
                 )
             )
             productDao.insertProducts(initialProducts)

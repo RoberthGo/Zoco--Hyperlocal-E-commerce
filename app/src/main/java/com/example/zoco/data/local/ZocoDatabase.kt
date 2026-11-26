@@ -15,7 +15,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         OrderEntity::class,
         UserProfileEntity::class
     ],
-    version = 8,
+    version = 9,
     exportSchema = false
 )
 abstract class ZocoDatabase : RoomDatabase() {
@@ -45,6 +45,14 @@ abstract class ZocoDatabase : RoomDatabase() {
             }
         }
 
+        /** v8 -> v9: propietario en servidor/offline (sellerId, sellerUsername). */
+        val MIGRATION_8_9 = object : Migration(8, 9) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE products ADD COLUMN sellerId INTEGER DEFAULT NULL")
+                db.execSQL("ALTER TABLE products ADD COLUMN sellerUsername TEXT DEFAULT NULL")
+            }
+        }
+
         fun getInstance(context: Context): ZocoDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
@@ -52,7 +60,7 @@ abstract class ZocoDatabase : RoomDatabase() {
                     ZocoDatabase::class.java,
                     "zoco_database.db"
                 )
-                    .addMigrations(MIGRATION_6_7, MIGRATION_7_8)
+                    .addMigrations(MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9)
                     .fallbackToDestructiveMigration()
                     .build()
                 INSTANCE = instance

@@ -6,6 +6,7 @@
     <string name="nav_catalog">Catálogo</string>
     <string name="nav_cart">Carrito</string>
     <string name="nav_seller">Vender</string>
+    <string name="nav_admin">Admin</string>
     <string name="nav_profile">Perfil</string>
 
     <!-- Catalog Screen -->
@@ -109,4 +110,46 @@
     <string name="status_offline">Offline</string>
     <string name="team_title">Equipo de Desarrollo Zoco</string>
     <string name="team_members">1. Roberto Gordillo Herrera\n2. Leonardo Nuñez Zavala\n3. Ricardo Abraham Pérez Hernández</string>
+
+    <!-- Roles, Auth & Admin -->
+    <string name="role_buyer">Comprador</string>
+    <string name="role_seller">Vendedor</string>
+    <string name="role_admin">Administrador</string>
+    <string name="badge_yours">Tuyo</string>
+    <string name="btn_become_seller">Convertirme en Vendedor</string>
+    <string name="become_seller_subtitle">Publica tus productos locales y gestiona tus propios pedidos</string>
+    <string name="dialog_become_seller_title">¿Convertirte en Vendedor?</string>
+    <string name="dialog_become_seller_msg">Se habilitará la pestaña Vender para que publiques tus productos y gestiones tus pedidos. Solo podrás eliminar tus propios productos.</string>
+    <string name="dialog_business_name_label">Nombre de tu negocio o productor (opcional)</string>
+    <string name="dialog_confirm_seller">Sí, activar Vendedor</string>
+    <string name="quick_switch_title">Cambio Rápido de Cuenta (1 Clic)</string>
+    <string name="quick_switch_subtitle">Alterna entre los 3 perfiles precargados para probar roles y permisos:</string>
+    <string name="quick_buyer_btn">Comprador\n(Laura)</string>
+    <string name="quick_seller_btn">Vendedor\n(Juan)</string>
+    <string name="quick_admin_btn">Admin\n(Zoco)</string>
+    <string name="btn_auth_login_register">Iniciar Sesión o Crear Cuenta</string>
+    <string name="auth_dialog_login_tab">Iniciar Sesión</string>
+    <string name="auth_dialog_register_tab">Registrarse</string>
+    <string name="auth_username_label">Usuario</string>
+    <string name="auth_password_label">Contraseña</string>
+    <string name="auth_email_label">Correo electrónico</string>
+    <string name="auth_fullname_label">Nombre completo</string>
+    <string name="auth_role_select">Tipo de cuenta:</string>
+    <string name="auth_submit_login">Entrar</string>
+    <string name="auth_submit_register">Crear Cuenta</string>
+    <string name="seller_tab_publish">Publicar</string>
+    <string name="seller_tab_my_products">Mis Productos (%d)</string>
+    <string name="seller_tab_orders">Pedidos (%d)</string>
+    <string name="seller_no_products">Aún no has publicado productos propios.</string>
+    <string name="seller_no_orders">No hay pedidos registrados aún.</string>
+    <string name="admin_title">Panel de Administración</string>
+    <string name="admin_tab_users">Usuarios (%d)</string>
+    <string name="admin_tab_orders">Pedidos (%d)</string>
+    <string name="admin_tab_products">Productos (%d)</string>
+    <string name="admin_refresh">Actualizar</string>
+    <string name="admin_owner_label">Vendedor: %s</string>
+    <string name="btn_mark_confirmed">Confirmar</string>
+    <string name="btn_mark_preparing">Preparar</string>
+    <string name="btn_mark_delivery">En camino</string>
+    <string name="btn_mark_delivered">Entregado</string>
 </resources>

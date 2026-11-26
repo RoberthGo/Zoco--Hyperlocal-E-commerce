@@ -206,6 +206,18 @@ class OrderRepositoryImpl(
         }
     }
 
+    override suspend fun updateOrderStatus(orderId: Long, newStatus: String): Boolean {
+        val entity = orderDao.getOrderById(orderId) ?: return false
+        if (entity.isRemote) {
+            try {
+                orderApiService.updateOrderStatus(orderId, mapOf("status" to newStatus))
+            } catch (e: Exception) {
+                Log.w(TAG, "No se pudo actualizar estado en Web API; guardando cambio local: ${e.message}")
+            }
+        }
+        return orderDao.updateOrder(entity.copy(status = newStatus)) > 0
+    }
+
     override suspend fun deleteOrder(id: Long): Boolean {
         val entity = orderDao.getOrderById(id) ?: return false
 

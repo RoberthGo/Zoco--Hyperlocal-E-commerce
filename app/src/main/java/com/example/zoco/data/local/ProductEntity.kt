@@ -22,7 +22,9 @@ data class ProductEntity(
     @ColumnInfo(defaultValue = "0")
     val pendingSync: Boolean = false,
     @ColumnInfo(defaultValue = "0")
-    val isOwnedByUser: Boolean = false
+    val isOwnedByUser: Boolean = false,
+    val sellerId: Long? = null,
+    val sellerUsername: String? = null
 ) {
     fun toDomain(imageUrl: String? = null): Product {
         val cat = runCatching { ProductCategory.valueOf(category) }.getOrDefault(ProductCategory.ALL)
@@ -39,7 +41,9 @@ data class ProductEntity(
             imageUrl = imageUrl,
             stock = stock,
             pendingSync = pendingSync,
-            isOwnedByUser = isOwnedByUser
+            isOwnedByUser = isOwnedByUser,
+            sellerId = sellerId,
+            sellerUsername = sellerUsername
         )
     }
 
@@ -57,7 +61,9 @@ data class ProductEntity(
                 isRemote = product.isRemote,
                 stock = product.stock,
                 pendingSync = product.pendingSync,
-                isOwnedByUser = product.isOwnedByUser
+                isOwnedByUser = product.isOwnedByUser,
+                sellerId = product.sellerId,
+                sellerUsername = product.sellerUsername
             )
         }
     }

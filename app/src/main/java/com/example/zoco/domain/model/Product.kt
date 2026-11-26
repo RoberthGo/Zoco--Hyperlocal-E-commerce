@@ -21,5 +21,25 @@ data class Product(
     val imageUrl: String? = null,
     val stock: Int = 10,
     val pendingSync: Boolean = false,
-    val isOwnedByUser: Boolean = false
-)
+    val isOwnedByUser: Boolean = false,
+    val sellerId: Long? = null,
+    val sellerUsername: String? = null
+) {
+    fun isOwnedBy(session: UserSession): Boolean {
+        if (!sellerUsername.isNullOrBlank()) {
+            return sellerUsername == session.username
+        }
+        if (sellerId != null && session.userId > 0L) {
+            return sellerId == session.userId
+        }
+        return isOwnedByUser && session.role.canAccessSeller
+    }
+
+    fun canBeDeletedBy(session: UserSession): Boolean {
+        return when (session.role) {
+            UserRole.ADMIN -> true
+            UserRole.SELLER -> isOwnedBy(session)
+            UserRole.BUYER -> false
+        }
+    }
+}

@@ -6,6 +6,9 @@ import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import com.example.zoco.ui.admin.AdminScreen
+import com.example.zoco.ui.admin.AdminUiState
+import com.example.zoco.ui.admin.AdminViewModel
 import com.example.zoco.ui.cart.CartScreen
 import com.example.zoco.ui.cart.CartUiState
 import com.example.zoco.ui.cart.CartViewModel
@@ -28,6 +31,8 @@ fun ZocoNavHost(
     cartState: CartUiState,
     sellerViewModel: SellerViewModel,
     sellerState: SellerUiState,
+    adminViewModel: AdminViewModel,
+    adminState: AdminUiState,
     profileViewModel: ProfileViewModel,
     profileState: ProfileUiState,
     snackbarHostState: SnackbarHostState,
@@ -76,7 +81,19 @@ fun ZocoNavHost(
                 onProducerNameChange = sellerViewModel::onProducerNameChanged,
                 onExpressChange = sellerViewModel::onExpressChanged,
                 onImageUriChange = sellerViewModel::onImageUriChanged,
-                onSaveProduct = sellerViewModel::saveProduct
+                onSaveProduct = sellerViewModel::saveProduct,
+                onDeleteOwnProduct = sellerViewModel::deleteOwnProduct,
+                onUpdateOrderStatus = sellerViewModel::updateOrderStatus
+            )
+        }
+
+        composable(route = Screen.ADMIN.route) {
+            AdminScreen(
+                uiState = adminState,
+                onRefresh = adminViewModel::refreshAll,
+                onChangeUserRole = adminViewModel::changeUserRole,
+                onChangeOrderStatus = adminViewModel::changeOrderStatus,
+                onDeleteProduct = adminViewModel::deleteProductByModeration
             )
         }
 
@@ -87,7 +104,11 @@ fun ZocoNavHost(
                 onUpdateName = profileViewModel::updateName,
                 onLanguageChange = profileViewModel::setLanguage,
                 onApiUrlChange = profileViewModel::updateApiUrl,
-                onCheckConnection = profileViewModel::checkConnection
+                onCheckConnection = profileViewModel::checkConnection,
+                onQuickSwitchRole = profileViewModel::quickSwitchRole,
+                onLogin = profileViewModel::login,
+                onRegister = profileViewModel::register,
+                onBecomeSeller = profileViewModel::becomeSeller
             )
         }
     }

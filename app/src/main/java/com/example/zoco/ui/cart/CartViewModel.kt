@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.zoco.domain.model.CartItem
 import com.example.zoco.domain.model.Order
 import com.example.zoco.domain.model.Product
+import com.example.zoco.domain.repository.AuthRepository
 import com.example.zoco.domain.repository.OrderRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -30,7 +31,8 @@ data class CartUiState(
 }
 
 class CartViewModel(
-    private val orderRepository: OrderRepository? = null
+    private val orderRepository: OrderRepository? = null,
+    private val authRepository: AuthRepository? = null
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(CartUiState())
@@ -38,6 +40,19 @@ class CartViewModel(
     private val _isApiActive = MutableStateFlow(false)
 
     init {
+        authRepository?.let { auth ->
+            viewModelScope.launch {
+                auth.sessionFlow.collect { session ->
+                    _uiState.update { current ->
+                        current.copy(
+                            customerName = session.fullName.ifBlank { session.username },
+                            customerPhone = session.phone.ifBlank { current.customerPhone },
+                            deliveryAddress = session.address.ifBlank { current.deliveryAddress }
+                        )
+                    }
+                }
+            }
+        }
         orderRepository?.let { repo ->
             viewModelScope.launch {
                 repo.populateInitialOrdersIfEmpty()

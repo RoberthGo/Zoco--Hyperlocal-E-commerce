@@ -1,11 +1,14 @@
 package com.example.zoco.data.remote
 
+import com.example.zoco.data.local.SessionManager
+import com.example.zoco.data.remote.api.AuthApiService
 import com.example.zoco.data.remote.api.NotificationApiService
 import com.example.zoco.data.remote.api.OrderApiService
 import com.example.zoco.data.remote.api.ProductApiService
 import com.example.zoco.data.remote.api.UserProfileApiService
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
+import okhttp3.Interceptor
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
@@ -39,12 +42,26 @@ object RetrofitClient {
             .build()
     }
 
+    private val authInterceptor = Interceptor { chain ->
+        val token = SessionManager.activeToken
+        val original = chain.request()
+        val request = if (!token.isNullOrBlank()) {
+            original.newBuilder()
+                .header("Authorization", "Token $token")
+                .build()
+        } else {
+            original
+        }
+        chain.proceed(request)
+    }
+
     private val okHttpClient: OkHttpClient by lazy {
         val logging = HttpLoggingInterceptor().apply {
             level = HttpLoggingInterceptor.Level.BODY
         }
 
         OkHttpClient.Builder()
+            .addInterceptor(authInterceptor)
             .addInterceptor(logging)
             .connectTimeout(3, TimeUnit.SECONDS)
             .readTimeout(3, TimeUnit.SECONDS)
@@ -71,6 +88,10 @@ object RetrofitClient {
     var userProfileApiService: UserProfileApiService = retrofitInstance.create(UserProfileApiService::class.java)
         private set
 
+    @Volatile
+    var authApiService: AuthApiService = retrofitInstance.create(AuthApiService::class.java)
+        private set
+
     fun createRetrofit(baseUrl: String): Retrofit {
         val safeUrl = if (baseUrl.endsWith("/")) baseUrl else "$baseUrl/"
         return Retrofit.Builder()
@@ -91,6 +112,7 @@ object RetrofitClient {
         orderApiService = retrofitInstance.create(OrderApiService::class.java)
         notificationApiService = retrofitInstance.create(NotificationApiService::class.java)
         userProfileApiService = retrofitInstance.create(UserProfileApiService::class.java)
+        authApiService = retrofitInstance.create(AuthApiService::class.java)
     }
 
     /**

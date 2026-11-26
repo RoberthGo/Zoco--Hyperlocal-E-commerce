@@ -6,6 +6,7 @@
     <string name="nav_catalog">Catalog</string>
     <string name="nav_cart">Cart</string>
     <string name="nav_seller">Sell</string>
+    <string name="nav_admin">Admin</string>
     <string name="nav_profile">Profile</string>
 
     <!-- Catalog Screen -->
@@ -109,4 +110,46 @@
     <string name="status_offline">Offline</string>
     <string name="team_title">Zoco Development Team</string>
     <string name="team_members">1. Roberto Gordillo Herrera\n2. Leonardo Nuñez Zavala\n3. Ricardo Abraham Pérez Hernández</string>
+
+    <!-- Roles, Auth & Admin -->
+    <string name="role_buyer">Buyer</string>
+    <string name="role_seller">Seller</string>
+    <string name="role_admin">Administrator</string>
+    <string name="badge_yours">Yours</string>
+    <string name="btn_become_seller">Become a Seller</string>
+    <string name="become_seller_subtitle">Publish your local goods and manage your own orders</string>
+    <string name="dialog_become_seller_title">Become a Seller?</string>
+    <string name="dialog_become_seller_msg">The Sell tab will be enabled so you can publish products and manage your orders. You can only delete your own products.</string>
+    <string name="dialog_business_name_label">Your business or producer name (optional)</string>
+    <string name="dialog_confirm_seller">Yes, activate Seller</string>
+    <string name="quick_switch_title">Quick Account Switch (1-Click)</string>
+    <string name="quick_switch_subtitle">Switch between the 3 predefined accounts to test roles &amp; permissions:</string>
+    <string name="quick_buyer_btn">Buyer\n(Laura)</string>
+    <string name="quick_seller_btn">Seller\n(Juan)</string>
+    <string name="quick_admin_btn">Admin\n(Zoco)</string>
+    <string name="btn_auth_login_register">Sign In or Create Account</string>
+    <string name="auth_dialog_login_tab">Sign In</string>
+    <string name="auth_dialog_register_tab">Register</string>
+    <string name="auth_username_label">Username</string>
+    <string name="auth_password_label">Password</string>
+    <string name="auth_email_label">Email</string>
+    <string name="auth_fullname_label">Full name</string>
+    <string name="auth_role_select">Account type:</string>
+    <string name="auth_submit_login">Sign In</string>
+    <string name="auth_submit_register">Create Account</string>
+    <string name="seller_tab_publish">Publish</string>
+    <string name="seller_tab_my_products">My Products (%d)</string>
+    <string name="seller_tab_orders">Orders (%d)</string>
+    <string name="seller_no_products">You have not published any products yet.</string>
+    <string name="seller_no_orders">No orders registered yet.</string>
+    <string name="admin_title">Admin Dashboard</string>
+    <string name="admin_tab_users">Users (%d)</string>
+    <string name="admin_tab_orders">Orders (%d)</string>
+    <string name="admin_tab_products">Products (%d)</string>
+    <string name="admin_refresh">Refresh</string>
+    <string name="admin_owner_label">Seller: %s</string>
+    <string name="btn_mark_confirmed">Confirm</string>
+    <string name="btn_mark_preparing">Preparing</string>
+    <string name="btn_mark_delivery">On the way</string>
+    <string name="btn_mark_delivered">Delivered</string>
 </resources>

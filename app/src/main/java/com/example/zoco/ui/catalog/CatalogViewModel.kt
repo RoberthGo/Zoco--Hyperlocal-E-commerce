@@ -3,8 +3,11 @@ package com.example.zoco.ui.catalog
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.zoco.data.remote.NetworkConnectivityChecker
+import com.example.zoco.domain.model.PredefinedUsers
 import com.example.zoco.domain.model.Product
 import com.example.zoco.domain.model.ProductCategory
+import com.example.zoco.domain.model.UserSession
+import com.example.zoco.domain.repository.AuthRepository
 import com.example.zoco.domain.repository.ProductRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -23,12 +26,31 @@ data class CatalogUiState(
     val isSyncing: Boolean = false,
     val isApiActive: Boolean = false,
     val isInternetAvailable: Boolean = true,
-    val syncMessage: String? = null
-)
+    val syncMessage: String? = null,
+    val currentSession: UserSession = PredefinedUsers.BUYER.session,
+    val enforceRolePermissions: Boolean = false
+) {
+    fun canDelete(product: Product): Boolean {
+        return if (enforceRolePermissions) {
+            product.canBeDeletedBy(currentSession)
+        } else {
+            product.isOwnedByUser
+        }
+    }
+
+    fun isOwnProduct(product: Product): Boolean {
+        return if (enforceRolePermissions) {
+            product.isOwnedBy(currentSession)
+        } else {
+            product.isOwnedByUser
+        }
+    }
+}
 
 class CatalogViewModel(
     private val repository: ProductRepository,
-    private val networkChecker: NetworkConnectivityChecker? = null
+    private val networkChecker: NetworkConnectivityChecker? = null,
+    private val authRepository: AuthRepository? = null
 ) : ViewModel() {
 
     private val _searchQuery = MutableStateFlow("")
@@ -46,7 +68,8 @@ class CatalogViewModel(
         _isSyncing,
         _syncMessage,
         _isApiActive,
-        networkChecker?.observeConnectivity() ?: flowOf(true)
+        networkChecker?.observeConnectivity() ?: flowOf(true),
+        authRepository?.sessionFlow ?: flowOf(PredefinedUsers.BUYER.session)
     ) { args: Array<Any?> ->
         @Suppress("UNCHECKED_CAST")
         val allProducts = args[0] as List<Product>
@@ -57,13 +80,14 @@ class CatalogViewModel(
         val syncMessage = args[5] as? String
         val isApiActive = args[6] as Boolean
         val isInternetAvailable = args[7] as Boolean
+        val session = args[8] as UserSession
 
         // REGLA CRÍTICA: Cuando la API no esté activa, asegurarse de que no se muestren las cosas de la API
         val availableProducts = if (isApiActive) {
             allProducts
         } else {
-            allProducts.filterNot { 
-                it.isRemote || it.name.startsWith("[En Línea]") || it.producerName.contains("[Web API]") 
+            allProducts.filterNot {
+                it.isRemote || it.name.startsWith("[En Línea]") || it.producerName.contains("[Web API]")
             }
         }
 
@@ -83,7 +107,9 @@ class CatalogViewModel(
             isSyncing = isSyncing,
             isApiActive = isApiActive,
             isInternetAvailable = isInternetAvailable,
-            syncMessage = syncMessage
+            syncMessage = syncMessage,
+            currentSession = session,
+            enforceRolePermissions = authRepository != null
         )
     }.stateIn(
         scope = viewModelScope,
@@ -93,9 +119,7 @@ class CatalogViewModel(
 
     init {
         viewModelScope.launch {
-            // Asegurar que el catálogo local offline esté poblado en Room
             repository.populateInitialDataIfEmpty()
-            // Sincronizar catálogo desde la Web API de Django
             val synced = repository.syncProductsFromRemote()
             _isApiActive.value = synced
             _syncMessage.value = if (synced) {
@@ -134,7 +158,8 @@ class CatalogViewModel(
     }
 
     fun deleteProduct(product: Product) {
-        if (!product.isOwnedByUser) {
+        val state = uiState.value
+        if (!state.canDelete(product)) {
             _syncMessage.value = "Solo puedes eliminar los productos que tú publicaste."
             return
         }
@@ -147,7 +172,7 @@ class CatalogViewModel(
             _syncMessage.value = if (deleted) {
                 "Producto eliminado de Room y de la Web API: ${product.name}"
             } else {
-                "Sin conexión con la Web API: no se pudo eliminar \"${product.name}\". Eliminar requiere internet."
+                "No se pudo eliminar \"${product.name}\". Verifica conexión o permisos."
             }
         }
     }

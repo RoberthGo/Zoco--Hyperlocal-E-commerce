@@ -43,6 +43,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.example.zoco.domain.model.UserRole
+import com.example.zoco.ui.admin.AdminViewModel
 import com.example.zoco.ui.cart.CartViewModel
 import com.example.zoco.ui.catalog.CatalogViewModel
 import com.example.zoco.ui.common.ViewModelFactory
@@ -65,7 +67,8 @@ class MainActivity : ComponentActivity() {
             orderRepository = app.orderRepository,
             userProfileRepository = app.userProfileRepository,
             networkConnectivityChecker = app.networkConnectivityChecker,
-            sharedPreferences = prefs
+            sharedPreferences = prefs,
+            authRepository = app.authRepository
         )
 
         setContent {
@@ -87,17 +90,42 @@ fun ZocoApp(
     val catalogViewModel: CatalogViewModel = viewModel(factory = viewModelFactory)
     val cartViewModel: CartViewModel = viewModel(factory = viewModelFactory)
     val sellerViewModel: SellerViewModel = viewModel(factory = viewModelFactory)
+    val adminViewModel: AdminViewModel = viewModel(factory = viewModelFactory)
     val profileViewModel: ProfileViewModel = viewModel(factory = viewModelFactory)
 
     val catalogState by catalogViewModel.uiState.collectAsStateWithLifecycle()
     val cartState by cartViewModel.uiState.collectAsStateWithLifecycle()
     val sellerState by sellerViewModel.uiState.collectAsStateWithLifecycle()
+    val adminState by adminViewModel.uiState.collectAsStateWithLifecycle()
     val profileState by profileViewModel.uiState.collectAsStateWithLifecycle()
+
+    val visibleScreens = remember(profileState.currentSession.role) {
+        Screen.visibleFor(profileState.currentSession.role)
+    }
 
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
     val currentRoute = currentDestination?.route
     val currentScreen = Screen.fromRoute(currentRoute)
+
+    LaunchedEffect(profileState.currentSession.role, currentRoute) {
+        if (!visibleScreens.contains(currentScreen)) {
+            navController.navigate(Screen.CATALOG.route) {
+                popUpTo(navController.graph.findStartDestination().id) {
+                    inclusive = false
+                }
+                launchSingleTop = true
+            }
+        }
+    }
+
+    LaunchedEffect(profileState.currentSession.username, profileState.currentSession.role) {
+        catalogViewModel.syncFromWeb()
+        cartViewModel.syncOrdersFromWeb()
+        if (profileState.currentSession.role == UserRole.ADMIN) {
+            adminViewModel.refreshAll()
+        }
+    }
 
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -146,7 +174,7 @@ fun ZocoApp(
             if (isWideScreen) {
                 Row(modifier = Modifier.fillMaxSize()) {
                     NavigationRail {
-                        Screen.entries.forEach { screen ->
+                        visibleScreens.forEach { screen ->
                             NavigationRailItem(
                                 selected = currentScreen == screen,
                                 onClick = {
@@ -199,6 +227,8 @@ fun ZocoApp(
                             cartState = cartState,
                             sellerViewModel = sellerViewModel,
                             sellerState = sellerState,
+                            adminViewModel = adminViewModel,
+                            adminState = adminState,
                             profileViewModel = profileViewModel,
                             profileState = profileState,
                             snackbarHostState = snackbarHostState,
@@ -225,7 +255,7 @@ fun ZocoApp(
                     },
                     bottomBar = {
                         NavigationBar {
-                            Screen.entries.forEach { screen ->
+                            visibleScreens.forEach { screen ->
                                 NavigationBarItem(
                                     selected = currentScreen == screen,
                                     onClick = {
@@ -262,6 +292,8 @@ fun ZocoApp(
                         cartState = cartState,
                         sellerViewModel = sellerViewModel,
                         sellerState = sellerState,
+                        adminViewModel = adminViewModel,
+                        adminState = adminState,
                         profileViewModel = profileViewModel,
                         profileState = profileState,
                         snackbarHostState = snackbarHostState,

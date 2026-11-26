@@ -6,10 +6,12 @@ import android.graphics.Bitmap
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -17,6 +19,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -24,6 +31,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddPhotoAlternate
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -35,8 +43,15 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -69,98 +84,296 @@ fun SellerScreen(
     onExpressChange: (Boolean) -> Unit,
     onImageUriChange: (String?) -> Unit = {},
     onSaveProduct: () -> Unit,
+    onDeleteOwnProduct: (Product) -> Unit = {},
+    onUpdateOrderStatus: (Long, String) -> Unit = { _, _ -> },
     modifier: Modifier = Modifier
 ) {
-    BoxWithConstraints(modifier = modifier.fillMaxSize()) {
-        val isWide = maxWidth >= 600.dp
+    var selectedTab by remember { mutableIntStateOf(0) }
 
-        if (isWide) {
-            Row(
+    Column(modifier = modifier.fillMaxSize()) {
+        TabRow(selectedTabIndex = selectedTab) {
+            Tab(
+                selected = selectedTab == 0,
+                onClick = { selectedTab = 0 },
+                text = { Text(stringResource(R.string.seller_tab_publish)) }
+            )
+            Tab(
+                selected = selectedTab == 1,
+                onClick = { selectedTab = 1 },
+                text = { Text(stringResource(R.string.seller_tab_my_products, uiState.myProducts.size)) }
+            )
+            Tab(
+                selected = selectedTab == 2,
+                onClick = { selectedTab = 2 },
+                text = { Text(stringResource(R.string.seller_tab_orders, uiState.receivedOrders.size)) }
+            )
+        }
+
+        if (uiState.actionMessage != null) {
+            Card(
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
                 modifier = Modifier
-                    .fillMaxSize()
-                    .padding(16.dp),
-                horizontalArrangement = Arrangement.spacedBy(20.dp)
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 6.dp)
             ) {
-                // Panel izquierdo: Formulario de captura
-                Column(
-                    modifier = Modifier
-                        .weight(1f)
-                        .verticalScroll(rememberScrollState()),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    SellerFormContent(
-                        uiState = uiState,
-                        onNameChange = onNameChange,
-                        onDescriptionChange = onDescriptionChange,
-                        onPriceChange = onPriceChange,
-                        onStockChange = onStockChange,
-                        onCategoryChange = onCategoryChange,
-                        onProducerNameChange = onProducerNameChange,
-                        onExpressChange = onExpressChange,
-                        onImageUriChange = onImageUriChange,
-                        onSaveProduct = onSaveProduct
-                    )
+                Text(
+                    text = uiState.actionMessage,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                    modifier = Modifier.padding(10.dp)
+                )
+            }
+        }
+
+        BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+            val isWide = maxWidth >= 600.dp
+
+            when (selectedTab) {
+                0 -> {
+                    if (isWide) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(16.dp),
+                            horizontalArrangement = Arrangement.spacedBy(20.dp)
+                        ) {
+                            Column(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .verticalScroll(rememberScrollState()),
+                                verticalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                SellerFormContent(
+                                    uiState = uiState,
+                                    onNameChange = onNameChange,
+                                    onDescriptionChange = onDescriptionChange,
+                                    onPriceChange = onPriceChange,
+                                    onStockChange = onStockChange,
+                                    onCategoryChange = onCategoryChange,
+                                    onProducerNameChange = onProducerNameChange,
+                                    onExpressChange = onExpressChange,
+                                    onImageUriChange = onImageUriChange,
+                                    onSaveProduct = onSaveProduct
+                                )
+                            }
+
+                            Column(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .verticalScroll(rememberScrollState()),
+                                verticalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                Text(
+                                    text = stringResource(R.string.seller_preview_title),
+                                    style = MaterialTheme.typography.titleLarge,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(
+                                    text = stringResource(R.string.seller_preview_subtitle),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.outline
+                                )
+
+                                Spacer(modifier = Modifier.height(8.dp))
+
+                                val previewProduct = Product(
+                                    id = 0,
+                                    name = uiState.name.ifBlank { stringResource(R.string.placeholder_product_name) },
+                                    description = uiState.description.ifBlank { stringResource(R.string.placeholder_description) },
+                                    price = uiState.price.toDoubleOrNull() ?: 0.0,
+                                    stock = uiState.stock.toIntOrNull() ?: 10,
+                                    category = uiState.category,
+                                    producerName = uiState.producerName.ifBlank { stringResource(R.string.placeholder_producer_name) },
+                                    isExpressDelivery = uiState.isExpressDelivery,
+                                    isRemote = false,
+                                    imageUrl = uiState.imageUri
+                                )
+
+                                ProductItemCard(
+                                    product = previewProduct,
+                                    onAddToCart = {}
+                                )
+                            }
+                        }
+                    } else {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .verticalScroll(rememberScrollState())
+                                .padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            SellerFormContent(
+                                uiState = uiState,
+                                onNameChange = onNameChange,
+                                onDescriptionChange = onDescriptionChange,
+                                onPriceChange = onPriceChange,
+                                onStockChange = onStockChange,
+                                onCategoryChange = onCategoryChange,
+                                onProducerNameChange = onProducerNameChange,
+                                onExpressChange = onExpressChange,
+                                onImageUriChange = onImageUriChange,
+                                onSaveProduct = onSaveProduct
+                            )
+                        }
+                    }
                 }
-
-                // Panel derecho: Vista previa en tiempo real
-                Column(
-                    modifier = Modifier
-                        .weight(1f)
-                        .verticalScroll(rememberScrollState()),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Text(
-                        text = stringResource(R.string.seller_preview_title),
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        text = stringResource(R.string.seller_preview_subtitle),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.outline
-                    )
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    val previewProduct = Product(
-                        id = 0,
-                        name = uiState.name.ifBlank { stringResource(R.string.placeholder_product_name) },
-                        description = uiState.description.ifBlank { stringResource(R.string.placeholder_description) },
-                        price = uiState.price.toDoubleOrNull() ?: 0.0,
-                        stock = uiState.stock.toIntOrNull() ?: 10,
-                        category = uiState.category,
-                        producerName = uiState.producerName.ifBlank { stringResource(R.string.placeholder_producer_name) },
-                        isExpressDelivery = uiState.isExpressDelivery,
-                        isRemote = false,
-                        imageUrl = uiState.imageUri
-                    )
-
-                    ProductItemCard(
-                        product = previewProduct,
-                        onAddToCart = {}
-                    )
+                1 -> {
+                    if (uiState.myProducts.isEmpty()) {
+                        Box(modifier = Modifier.fillMaxSize().padding(16.dp), contentAlignment = Alignment.Center) {
+                            Text(
+                                text = stringResource(R.string.seller_no_products),
+                                style = MaterialTheme.typography.bodyLarge
+                            )
+                        }
+                    } else if (isWide) {
+                        LazyVerticalGrid(
+                            columns = GridCells.Fixed(2),
+                            contentPadding = PaddingValues(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(10.dp),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            items(uiState.myProducts, key = { it.id }) { product ->
+                                SellerOwnProductCard(
+                                    product = product,
+                                    onDelete = { onDeleteOwnProduct(product) }
+                                )
+                            }
+                        }
+                    } else {
+                        LazyColumn(
+                            contentPadding = PaddingValues(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            items(uiState.myProducts, key = { it.id }) { product ->
+                                SellerOwnProductCard(
+                                    product = product,
+                                    onDelete = { onDeleteOwnProduct(product) }
+                                )
+                            }
+                        }
+                    }
+                }
+                else -> {
+                    if (uiState.receivedOrders.isEmpty()) {
+                        Box(modifier = Modifier.fillMaxSize().padding(16.dp), contentAlignment = Alignment.Center) {
+                            Text(
+                                text = stringResource(R.string.seller_no_orders),
+                                style = MaterialTheme.typography.bodyLarge
+                            )
+                        }
+                    } else {
+                        LazyColumn(
+                            contentPadding = PaddingValues(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            items(uiState.receivedOrders, key = { it.id }) { order ->
+                                Card(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                                ) {
+                                    Column(modifier = Modifier.padding(12.dp)) {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Text(
+                                                text = stringResource(R.string.order_number_label, order.id),
+                                                style = MaterialTheme.typography.titleSmall,
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                            Text(
+                                                text = order.status,
+                                                style = MaterialTheme.typography.labelSmall,
+                                                fontWeight = FontWeight.Bold,
+                                                color = MaterialTheme.colorScheme.primary
+                                            )
+                                        }
+                                        if (order.customerName.isNotBlank()) {
+                                            Text(
+                                                text = stringResource(R.string.order_customer_label, order.customerName),
+                                                style = MaterialTheme.typography.bodySmall
+                                            )
+                                        }
+                                        if (order.itemSummary.isNotBlank()) {
+                                            Text(
+                                                text = order.itemSummary,
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.outline
+                                            )
+                                        }
+                                        Spacer(modifier = Modifier.height(6.dp))
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .horizontalScroll(rememberScrollState()),
+                                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                        ) {
+                                            listOf(
+                                                "CONFIRMED" to stringResource(R.string.btn_mark_confirmed),
+                                                "PREPARING" to stringResource(R.string.btn_mark_preparing),
+                                                "OUT_FOR_DELIVERY" to stringResource(R.string.btn_mark_delivery),
+                                                "DELIVERED" to stringResource(R.string.btn_mark_delivered)
+                                            ).forEach { (statusCode, label) ->
+                                                OutlinedButton(
+                                                    onClick = { onUpdateOrderStatus(order.id, statusCode) },
+                                                    enabled = order.status != statusCode,
+                                                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
+                                                ) {
+                                                    Text(label, style = MaterialTheme.typography.labelSmall)
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             }
-        } else {
-            // Factor de forma móvil estándar (< 600dp)
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                SellerFormContent(
-                    uiState = uiState,
-                    onNameChange = onNameChange,
-                    onDescriptionChange = onDescriptionChange,
-                    onPriceChange = onPriceChange,
-                    onStockChange = onStockChange,
-                    onCategoryChange = onCategoryChange,
-                    onProducerNameChange = onProducerNameChange,
-                    onExpressChange = onExpressChange,
-                    onImageUriChange = onImageUriChange,
-                    onSaveProduct = onSaveProduct
+        }
+    }
+}
+
+@Composable
+private fun SellerOwnProductCard(
+    product: Product,
+    onDelete: () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = product.name,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = "${product.producerName} • \$${"%.2f".format(product.price)}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Text(
+                    text = stringResource(R.string.stock_available, product.stock),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.outline
+                )
+            }
+            IconButton(onClick = onDelete) {
+                Icon(
+                    Icons.Default.Delete,
+                    contentDescription = stringResource(R.string.delete_product_description),
+                    tint = MaterialTheme.colorScheme.error
                 )
             }
         }

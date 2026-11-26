@@ -78,6 +78,8 @@ fun AdaptiveProductList(
     onAddToCart: (Product) -> Unit,
     onDeleteProduct: (Product) -> Unit,
     isInternetAvailable: Boolean = true,
+    canDeleteProduct: (Product) -> Boolean = { it.isOwnedByUser },
+    isOwnProduct: (Product) -> Boolean = { it.isOwnedByUser },
     modifier: Modifier = Modifier
 ) {
     when (widthSizeClass) {
@@ -92,7 +94,9 @@ fun AdaptiveProductList(
                         product = product,
                         onAddToCart = { onAddToCart(product) },
                         onDelete = { onDeleteProduct(product) },
-                        isInternetAvailable = isInternetAvailable
+                        isInternetAvailable = isInternetAvailable,
+                        canDelete = canDeleteProduct(product),
+                        isOwnProduct = isOwnProduct(product)
                     )
                 }
             }
@@ -110,7 +114,9 @@ fun AdaptiveProductList(
                         product = product,
                         onAddToCart = { onAddToCart(product) },
                         onDelete = { onDeleteProduct(product) },
-                        isInternetAvailable = isInternetAvailable
+                        isInternetAvailable = isInternetAvailable,
+                        canDelete = canDeleteProduct(product),
+                        isOwnProduct = isOwnProduct(product)
                     )
                 }
             }
@@ -128,7 +134,9 @@ fun AdaptiveProductList(
                         product = product,
                         onAddToCart = { onAddToCart(product) },
                         onDelete = { onDeleteProduct(product) },
-                        isInternetAvailable = isInternetAvailable
+                        isInternetAvailable = isInternetAvailable,
+                        canDelete = canDeleteProduct(product),
+                        isOwnProduct = isOwnProduct(product)
                     )
                 }
             }

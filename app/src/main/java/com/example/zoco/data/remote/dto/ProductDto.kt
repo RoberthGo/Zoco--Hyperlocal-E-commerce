@@ -15,7 +15,9 @@ data class ProductDto(
     @Json(name = "producerName") val producerName: String,
     @Json(name = "isExpressDelivery") val isExpressDelivery: Boolean = false,
     @Json(name = "inStock") val inStock: Boolean = true,
-    @Json(name = "stock") val stock: Int = 10
+    @Json(name = "stock") val stock: Int = 10,
+    @Json(name = "sellerId") val sellerId: Long? = null,
+    @Json(name = "sellerUsername") val sellerUsername: String? = null
 ) {
     fun toDomain(): Product {
         val cat = runCatching { ProductCategory.valueOf(category) }.getOrDefault(ProductCategory.ALL)
@@ -28,7 +30,9 @@ data class ProductDto(
             producerName = producerName,
             isExpressDelivery = isExpressDelivery,
             inStock = inStock,
-            stock = stock
+            stock = stock,
+            sellerId = sellerId,
+            sellerUsername = sellerUsername
         )
     }
 
@@ -43,7 +47,9 @@ data class ProductDto(
                 producerName = product.producerName,
                 isExpressDelivery = product.isExpressDelivery,
                 inStock = product.inStock,
-                stock = product.stock
+                stock = product.stock,
+                sellerId = product.sellerId,
+                sellerUsername = product.sellerUsername
             )
         }
     }

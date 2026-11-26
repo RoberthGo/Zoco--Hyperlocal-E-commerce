@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
@@ -28,11 +29,14 @@ import androidx.compose.material.icons.filled.CloudDone
 import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Groups
+import androidx.compose.material.icons.filled.Login
 import androidx.compose.material.icons.filled.NetworkCheck
 import androidx.compose.material.icons.filled.PhotoLibrary
-import androidx.compose.material.icons.filled.Storage
+import androidx.compose.material.icons.filled.Storefront
+import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -40,12 +44,17 @@ import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -56,11 +65,14 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import coil.compose.AsyncImage
 import com.example.zoco.R
 import com.example.zoco.data.remote.RetrofitClient
+import com.example.zoco.domain.model.UserRole
 import java.io.File
 
 @Composable
@@ -71,12 +83,19 @@ fun ProfileScreen(
     onLanguageChange: (String) -> Unit = {},
     onApiUrlChange: (String) -> Unit = {},
     onCheckConnection: () -> Unit = {},
+    onQuickSwitchRole: (UserRole) -> Unit = {},
+    onLogin: (String, String) -> Unit = { _, _ -> },
+    onRegister: (String, String, String, String, UserRole) -> Unit = { _, _, _, _, _ -> },
+    onBecomeSeller: (String?) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
     val chipScrollState = rememberScrollState()
     var showNameDialog by remember { mutableStateOf(false) }
     var editedName by remember { mutableStateOf(uiState.userName) }
+    var showBecomeSellerDialog by remember { mutableStateOf(false) }
+    var businessNameInput by remember { mutableStateOf("") }
+    var showAuthDialog by remember { mutableStateOf(false) }
 
     // Launcher para galería
     val galleryLauncher = rememberLauncherForActivityResult(
@@ -183,12 +202,51 @@ fun ProfileScreen(
                                 )
                             }
                         }
-                        Text(
-                            text = uiState.userRole,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.outline
-                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Surface(
+                                shape = RoundedCornerShape(6.dp),
+                                color = when (uiState.currentSession.role) {
+                                    UserRole.ADMIN -> MaterialTheme.colorScheme.errorContainer
+                                    UserRole.SELLER -> MaterialTheme.colorScheme.tertiaryContainer
+                                    UserRole.BUYER -> MaterialTheme.colorScheme.primaryContainer
+                                }
+                            ) {
+                                Text(
+                                    text = when (uiState.currentSession.role) {
+                                        UserRole.BUYER -> stringResource(R.string.role_buyer)
+                                        UserRole.SELLER -> stringResource(R.string.role_seller)
+                                        UserRole.ADMIN -> stringResource(R.string.role_admin)
+                                    },
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = when (uiState.currentSession.role) {
+                                        UserRole.ADMIN -> MaterialTheme.colorScheme.onErrorContainer
+                                        UserRole.SELLER -> MaterialTheme.colorScheme.onTertiaryContainer
+                                        UserRole.BUYER -> MaterialTheme.colorScheme.onPrimaryContainer
+                                    },
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                                )
+                            }
+                            Text(
+                                text = "@${uiState.currentSession.username}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.outline
+                            )
+                        }
                     }
+                }
+
+                if (uiState.authMessage != null) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = uiState.authMessage,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.SemiBold
+                    )
                 }
 
                 Spacer(modifier = Modifier.height(12.dp))
@@ -257,6 +315,170 @@ fun ProfileScreen(
                     TextButton(onClick = { showNameDialog = false }) {
                         Text(stringResource(R.string.dialog_cancel))
                     }
+                }
+            )
+        }
+
+        // Botón "Convertirme en Vendedor" (solo visible para usuarios BUYER)
+        if (uiState.currentSession.role == UserRole.BUYER) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            Icons.Default.Storefront,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                        Spacer(modifier = Modifier.size(8.dp))
+                        Text(
+                            text = stringResource(R.string.btn_become_seller),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = stringResource(R.string.become_seller_subtitle),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Button(
+                        onClick = {
+                            businessNameInput = ""
+                            showBecomeSellerDialog = true
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(Icons.Default.Storefront, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.size(6.dp))
+                        Text(stringResource(R.string.btn_become_seller))
+                    }
+                }
+            }
+        }
+
+        // Cambio Rápido de Cuenta (3 Usuarios Precargados) + Login/Registro
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+        ) {
+            Column(modifier = Modifier.padding(14.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        Icons.Default.SwapHoriz,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                    Spacer(modifier = Modifier.size(8.dp))
+                    Text(
+                        text = stringResource(R.string.quick_switch_title),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = stringResource(R.string.quick_switch_subtitle),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.outline
+                )
+                Spacer(modifier = Modifier.height(10.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    val activeRole = uiState.currentSession.role
+                    listOf(
+                        UserRole.BUYER to stringResource(R.string.quick_buyer_btn),
+                        UserRole.SELLER to stringResource(R.string.quick_seller_btn),
+                        UserRole.ADMIN to stringResource(R.string.quick_admin_btn)
+                    ).forEach { (role, label) ->
+                        if (activeRole == role) {
+                            Button(
+                                onClick = { onQuickSwitchRole(role) },
+                                enabled = !uiState.isAuthLoading,
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Text(label, style = MaterialTheme.typography.labelSmall, textAlign = TextAlign.Center)
+                            }
+                        } else {
+                            OutlinedButton(
+                                onClick = { onQuickSwitchRole(role) },
+                                enabled = !uiState.isAuthLoading,
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Text(label, style = MaterialTheme.typography.labelSmall, textAlign = TextAlign.Center)
+                            }
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                OutlinedButton(
+                    onClick = { showAuthDialog = true },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(Icons.Default.Login, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.size(6.dp))
+                    Text(stringResource(R.string.btn_auth_login_register))
+                }
+            }
+        }
+
+        if (showBecomeSellerDialog) {
+            AlertDialog(
+                onDismissRequest = { showBecomeSellerDialog = false },
+                title = { Text(stringResource(R.string.dialog_become_seller_title)) },
+                text = {
+                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Text(
+                            text = stringResource(R.string.dialog_become_seller_msg),
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                        OutlinedTextField(
+                            value = businessNameInput,
+                            onValueChange = { businessNameInput = it },
+                            label = { Text(stringResource(R.string.dialog_business_name_label)) },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                },
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            onBecomeSeller(businessNameInput.trim().ifBlank { null })
+                            showBecomeSellerDialog = false
+                        }
+                    ) {
+                        Text(stringResource(R.string.dialog_confirm_seller))
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showBecomeSellerDialog = false }) {
+                        Text(stringResource(R.string.dialog_cancel))
+                    }
+                }
+            )
+        }
+
+        if (showAuthDialog) {
+            AuthCredentialsDialog(
+                onDismiss = { showAuthDialog = false },
+                onLogin = { user, pass ->
+                    onLogin(user, pass)
+                    showAuthDialog = false
+                },
+                onRegister = { user, email, pass, fullName, role ->
+                    onRegister(user, email, pass, fullName, role)
+                    showAuthDialog = false
                 }
             )
         }
@@ -429,4 +651,111 @@ fun ProfileScreen(
             }
         }
     }
+}
+
+@Composable
+private fun AuthCredentialsDialog(
+    onDismiss: () -> Unit,
+    onLogin: (String, String) -> Unit,
+    onRegister: (String, String, String, String, UserRole) -> Unit
+) {
+    var tabIndex by remember { mutableIntStateOf(0) }
+    var username by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
+    var email by remember { mutableStateOf("") }
+    var fullName by remember { mutableStateOf("") }
+    var selectedRole by remember { mutableStateOf(UserRole.BUYER) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            TabRow(selectedTabIndex = tabIndex) {
+                Tab(
+                    selected = tabIndex == 0,
+                    onClick = { tabIndex = 0 },
+                    text = { Text(stringResource(R.string.auth_dialog_login_tab)) }
+                )
+                Tab(
+                    selected = tabIndex == 1,
+                    onClick = { tabIndex = 1 },
+                    text = { Text(stringResource(R.string.auth_dialog_register_tab)) }
+                )
+            }
+        },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(
+                    value = username,
+                    onValueChange = { username = it },
+                    label = { Text(stringResource(R.string.auth_username_label)) },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                if (tabIndex == 1) {
+                    OutlinedTextField(
+                        value = fullName,
+                        onValueChange = { fullName = it },
+                        label = { Text(stringResource(R.string.auth_fullname_label)) },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    OutlinedTextField(
+                        value = email,
+                        onValueChange = { email = it },
+                        label = { Text(stringResource(R.string.auth_email_label)) },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+                OutlinedTextField(
+                    value = password,
+                    onValueChange = { password = it },
+                    label = { Text(stringResource(R.string.auth_password_label)) },
+                    visualTransformation = PasswordVisualTransformation(),
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                if (tabIndex == 1) {
+                    Text(
+                        text = stringResource(R.string.auth_role_select),
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        RadioButton(
+                            selected = selectedRole == UserRole.BUYER,
+                            onClick = { selectedRole = UserRole.BUYER }
+                        )
+                        Text(stringResource(R.string.role_buyer), modifier = Modifier.padding(end = 12.dp))
+                        RadioButton(
+                            selected = selectedRole == UserRole.SELLER,
+                            onClick = { selectedRole = UserRole.SELLER }
+                        )
+                        Text(stringResource(R.string.role_seller))
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    if (tabIndex == 0) {
+                        onLogin(username, password)
+                    } else {
+                        onRegister(username, email, password, fullName, selectedRole)
+                    }
+                }
+            ) {
+                Text(
+                    if (tabIndex == 0) stringResource(R.string.auth_submit_login)
+                    else stringResource(R.string.auth_submit_register)
+                )
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.dialog_cancel))
+            }
+        }
+    )
 }
