@@ -92,6 +92,7 @@ class SellerViewModelTest {
         assertEquals(120.50, saved.price, 0.001)
         assertEquals(ProductCategory.PRODUCE, saved.category)
         assertTrue(saved.isExpressDelivery)
+        assertTrue(saved.isOwnedByUser)
         assertEquals("content://media/external/images/media/42", saved.imageUrl)
 
         // Luego de 2 segundos el mensaje de éxito se limpia automáticamente

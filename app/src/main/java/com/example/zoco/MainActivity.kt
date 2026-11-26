@@ -64,6 +64,7 @@ class MainActivity : ComponentActivity() {
             productRepository = app.productRepository,
             orderRepository = app.orderRepository,
             userProfileRepository = app.userProfileRepository,
+            networkConnectivityChecker = app.networkConnectivityChecker,
             sharedPreferences = prefs
         )
 

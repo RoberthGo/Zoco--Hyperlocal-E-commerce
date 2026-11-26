@@ -237,7 +237,8 @@ fun CatalogScreen(
                     },
                     onDeleteProduct = { product ->
                         onDeleteProduct(product)
-                    }
+                    },
+                    isInternetAvailable = uiState.isInternetAvailable
                 )
             }
         }
@@ -282,6 +283,7 @@ fun ProductItemCard(
     product: Product,
     onAddToCart: () -> Unit,
     onDelete: () -> Unit = {},
+    isInternetAvailable: Boolean = true,
     modifier: Modifier = Modifier
 ) {
     Card(
@@ -391,18 +393,25 @@ fun ProductItemCard(
                 }
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    IconButton(
-                        onClick = onDelete,
-                        modifier = Modifier.size(36.dp)
-                    ) {
-                        Icon(
-                            Icons.Default.Delete,
-                            contentDescription = stringResource(R.string.delete_product_description),
-                            tint = MaterialTheme.colorScheme.error.copy(alpha = 0.8f)
-                        )
-                    }
+                    if (product.isOwnedByUser) {
+                        IconButton(
+                            onClick = onDelete,
+                            enabled = isInternetAvailable,
+                            modifier = Modifier.size(36.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.Delete,
+                                contentDescription = stringResource(R.string.delete_product_description),
+                                tint = if (isInternetAvailable) {
+                                    MaterialTheme.colorScheme.error.copy(alpha = 0.8f)
+                                } else {
+                                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
+                                }
+                            )
+                        }
 
-                    Spacer(modifier = Modifier.size(4.dp))
+                        Spacer(modifier = Modifier.size(4.dp))
+                    }
 
                     Button(
                         onClick = onAddToCart,

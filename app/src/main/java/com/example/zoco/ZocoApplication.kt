@@ -2,6 +2,8 @@ package com.example.zoco
 
 import android.app.Application
 import com.example.zoco.data.local.ZocoDatabase
+import com.example.zoco.data.remote.AndroidNetworkConnectivityChecker
+import com.example.zoco.data.remote.NetworkConnectivityChecker
 import com.example.zoco.data.remote.RetrofitClient
 import com.example.zoco.data.repository.OrderRepositoryImpl
 import com.example.zoco.data.repository.ProductRepositoryImpl
@@ -41,6 +43,10 @@ class ZocoApplication : Application() {
         UserProfileRepositoryImpl(
             userProfileDao = database.userProfileDao()
         )
+    }
+
+    val networkConnectivityChecker: NetworkConnectivityChecker by lazy {
+        AndroidNetworkConnectivityChecker(this)
     }
 
     override fun onCreate() {

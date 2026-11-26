@@ -20,5 +20,6 @@ data class Product(
     val isRemote: Boolean = false,
     val imageUrl: String? = null,
     val stock: Int = 10,
-    val pendingSync: Boolean = false
+    val pendingSync: Boolean = false,
+    val isOwnedByUser: Boolean = false
 )

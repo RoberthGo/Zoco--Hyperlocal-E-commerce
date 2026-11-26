@@ -77,6 +77,7 @@ fun AdaptiveProductList(
     widthSizeClass: WindowWidthSizeClass,
     onAddToCart: (Product) -> Unit,
     onDeleteProduct: (Product) -> Unit,
+    isInternetAvailable: Boolean = true,
     modifier: Modifier = Modifier
 ) {
     when (widthSizeClass) {
@@ -90,7 +91,8 @@ fun AdaptiveProductList(
                     ProductItemCard(
                         product = product,
                         onAddToCart = { onAddToCart(product) },
-                        onDelete = { onDeleteProduct(product) }
+                        onDelete = { onDeleteProduct(product) },
+                        isInternetAvailable = isInternetAvailable
                     )
                 }
             }
@@ -107,7 +109,8 @@ fun AdaptiveProductList(
                     ProductItemCard(
                         product = product,
                         onAddToCart = { onAddToCart(product) },
-                        onDelete = { onDeleteProduct(product) }
+                        onDelete = { onDeleteProduct(product) },
+                        isInternetAvailable = isInternetAvailable
                     )
                 }
             }
@@ -124,7 +127,8 @@ fun AdaptiveProductList(
                     ProductItemCard(
                         product = product,
                         onAddToCart = { onAddToCart(product) },
-                        onDelete = { onDeleteProduct(product) }
+                        onDelete = { onDeleteProduct(product) },
+                        isInternetAvailable = isInternetAvailable
                     )
                 }
             }

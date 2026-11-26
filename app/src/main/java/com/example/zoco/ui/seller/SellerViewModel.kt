@@ -60,7 +60,8 @@ class SellerViewModel(
                 producerName = state.producerName.trim(),
                 isExpressDelivery = state.isExpressDelivery,
                 inStock = parsedStock > 0,
-                imageUrl = state.imageUri
+                imageUrl = state.imageUri,
+                isOwnedByUser = true
             )
             repository.insertProductWithMedia(newProduct, state.imageUri)
             _uiState.update {

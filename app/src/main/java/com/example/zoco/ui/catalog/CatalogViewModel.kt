@@ -2,6 +2,7 @@ package com.example.zoco.ui.catalog
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.zoco.data.remote.NetworkConnectivityChecker
 import com.example.zoco.domain.model.Product
 import com.example.zoco.domain.model.ProductCategory
 import com.example.zoco.domain.repository.ProductRepository
@@ -9,8 +10,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 data class CatalogUiState(
@@ -21,11 +22,13 @@ data class CatalogUiState(
     val isLoading: Boolean = false,
     val isSyncing: Boolean = false,
     val isApiActive: Boolean = false,
+    val isInternetAvailable: Boolean = true,
     val syncMessage: String? = null
 )
 
 class CatalogViewModel(
-    private val repository: ProductRepository
+    private val repository: ProductRepository,
+    private val networkChecker: NetworkConnectivityChecker? = null
 ) : ViewModel() {
 
     private val _searchQuery = MutableStateFlow("")
@@ -42,7 +45,8 @@ class CatalogViewModel(
         _expressOnly,
         _isSyncing,
         _syncMessage,
-        _isApiActive
+        _isApiActive,
+        networkChecker?.observeConnectivity() ?: flowOf(true)
     ) { args: Array<Any?> ->
         @Suppress("UNCHECKED_CAST")
         val allProducts = args[0] as List<Product>
@@ -52,6 +56,7 @@ class CatalogViewModel(
         val isSyncing = args[4] as Boolean
         val syncMessage = args[5] as? String
         val isApiActive = args[6] as Boolean
+        val isInternetAvailable = args[7] as Boolean
 
         // REGLA CRÍTICA: Cuando la API no esté activa, asegurarse de que no se muestren las cosas de la API
         val availableProducts = if (isApiActive) {
@@ -77,6 +82,7 @@ class CatalogViewModel(
             isLoading = false,
             isSyncing = isSyncing,
             isApiActive = isApiActive,
+            isInternetAvailable = isInternetAvailable,
             syncMessage = syncMessage
         )
     }.stateIn(
@@ -128,6 +134,14 @@ class CatalogViewModel(
     }
 
     fun deleteProduct(product: Product) {
+        if (!product.isOwnedByUser) {
+            _syncMessage.value = "Solo puedes eliminar los productos que tú publicaste."
+            return
+        }
+        if (networkChecker != null && !networkChecker.isInternetAvailable()) {
+            _syncMessage.value = "Sin conexión a internet. Conéctate para poder eliminar productos."
+            return
+        }
         viewModelScope.launch {
             val deleted = repository.deleteProduct(product)
             _syncMessage.value = if (deleted) {
