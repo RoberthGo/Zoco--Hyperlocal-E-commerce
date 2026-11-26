@@ -5,7 +5,6 @@ import com.example.zoco.ui.common.formatAmount
 import com.example.zoco.ui.common.orderStatusLabel
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -48,12 +47,19 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.example.zoco.ui.common.LocalWindowSize
 import com.example.zoco.R
 import com.example.zoco.domain.model.ManagedUser
 import com.example.zoco.domain.model.Order
 import com.example.zoco.domain.model.Product
 import com.example.zoco.domain.model.UserRole
 
+/**
+ * Panel del administrador: usuarios, pedidos y productos de toda la comunidad.
+ *  - celular: tres pestañas, una lista a la vez.
+ *  - plegable: las mismas pestañas con las tarjetas en 2 columnas.
+ *  - tablet grande: tablero con las tres listas lado a lado, sin pestañas.
+ */
 @Composable
 fun AdminScreen(
     uiState: AdminUiState,
@@ -63,150 +69,142 @@ fun AdminScreen(
     onDeleteProduct: (Product) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var selectedTab by remember { mutableIntStateOf(0) }
+    val lists = AdminLists(
+        userList = { columns -> UserList(uiState.users, columns, onChangeUserRole) },
+        orderList = { columns -> OrderList(uiState.orders, columns, onChangeOrderStatus) },
+        productList = { columns -> ProductList(uiState.products, columns, onDeleteProduct) }
+    )
 
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(horizontal = 16.dp, vertical = 10.dp)
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = stringResource(R.string.admin_title),
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold
-            )
-
-            FilledTonalButton(
-                onClick = onRefresh,
-                enabled = !uiState.isRefreshing
-            ) {
-                if (uiState.isRefreshing) {
-                    CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
-                } else {
-                    Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(18.dp))
-                }
-                Spacer(modifier = Modifier.size(6.dp))
-                Text(stringResource(R.string.admin_refresh))
-            }
-        }
-
-        if (uiState.statusMessage != null) {
-            Spacer(modifier = Modifier.height(6.dp))
-            Card(
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(
-                    text = uiState.statusMessage,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSecondaryContainer,
-                    modifier = Modifier.padding(10.dp)
-                )
-            }
-        }
-
+    Column(modifier = modifier.fillMaxSize().padding(horizontal = 16.dp, vertical = 10.dp)) {
+        AdminHeader(isRefreshing = uiState.isRefreshing, onRefresh = onRefresh)
+        uiState.statusMessage?.let { StatusMessage(it) }
         Spacer(modifier = Modifier.height(8.dp))
 
-        TabRow(selectedTabIndex = selectedTab) {
-            Tab(
-                selected = selectedTab == 0,
-                onClick = { selectedTab = 0 },
-                text = { Text(stringResource(R.string.admin_tab_users, uiState.users.size)) }
-            )
-            Tab(
-                selected = selectedTab == 1,
-                onClick = { selectedTab = 1 },
-                text = { Text(stringResource(R.string.admin_tab_orders, uiState.orders.size)) }
-            )
-            Tab(
-                selected = selectedTab == 2,
-                onClick = { selectedTab = 2 },
-                text = { Text(stringResource(R.string.admin_tab_products, uiState.products.size)) }
-            )
+        if (LocalWindowSize.current.isExpanded) {
+            AdminDashboard(uiState, lists)
+        } else {
+            AdminTabs(uiState, lists)
         }
+    }
+}
 
-        Spacer(modifier = Modifier.height(10.dp))
+/** Las tres listas del panel, listas para dibujarse con el número de columnas que se les indique. */
+private class AdminLists(
+    val userList: @Composable (columns: Int) -> Unit,
+    val orderList: @Composable (columns: Int) -> Unit,
+    val productList: @Composable (columns: Int) -> Unit
+)
 
-        BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-            val columns = if (maxWidth >= 600.dp) 2 else 1
-
-            when (selectedTab) {
-                0 -> {
-                    if (columns == 2) {
-                        LazyVerticalGrid(
-                            columns = GridCells.Fixed(2),
-                            contentPadding = PaddingValues(bottom = 80.dp),
-                            verticalArrangement = Arrangement.spacedBy(10.dp),
-                            horizontalArrangement = Arrangement.spacedBy(10.dp)
-                        ) {
-                            items(uiState.users, key = { it.username }) { user ->
-                                AdminUserCard(user = user, onChangeRole = onChangeUserRole)
-                            }
-                        }
-                    } else {
-                        LazyColumn(
-                            contentPadding = PaddingValues(bottom = 80.dp),
-                            verticalArrangement = Arrangement.spacedBy(10.dp)
-                        ) {
-                            items(uiState.users, key = { it.username }) { user ->
-                                AdminUserCard(user = user, onChangeRole = onChangeUserRole)
-                            }
-                        }
-                    }
-                }
-                1 -> {
-                    if (columns == 2) {
-                        LazyVerticalGrid(
-                            columns = GridCells.Fixed(2),
-                            contentPadding = PaddingValues(bottom = 80.dp),
-                            verticalArrangement = Arrangement.spacedBy(10.dp),
-                            horizontalArrangement = Arrangement.spacedBy(10.dp)
-                        ) {
-                            items(uiState.orders, key = { it.id }) { order ->
-                                AdminOrderCard(order = order, onChangeStatus = onChangeOrderStatus)
-                            }
-                        }
-                    } else {
-                        LazyColumn(
-                            contentPadding = PaddingValues(bottom = 80.dp),
-                            verticalArrangement = Arrangement.spacedBy(10.dp)
-                        ) {
-                            items(uiState.orders, key = { it.id }) { order ->
-                                AdminOrderCard(order = order, onChangeStatus = onChangeOrderStatus)
-                            }
-                        }
-                    }
-                }
-                else -> {
-                    if (columns == 2) {
-                        LazyVerticalGrid(
-                            columns = GridCells.Fixed(2),
-                            contentPadding = PaddingValues(bottom = 80.dp),
-                            verticalArrangement = Arrangement.spacedBy(10.dp),
-                            horizontalArrangement = Arrangement.spacedBy(10.dp)
-                        ) {
-                            items(uiState.products, key = { it.id }) { product ->
-                                AdminProductCard(product = product, onDelete = { onDeleteProduct(product) })
-                            }
-                        }
-                    } else {
-                        LazyColumn(
-                            contentPadding = PaddingValues(bottom = 80.dp),
-                            verticalArrangement = Arrangement.spacedBy(10.dp)
-                        ) {
-                            items(uiState.products, key = { it.id }) { product ->
-                                AdminProductCard(product = product, onDelete = { onDeleteProduct(product) })
-                            }
-                        }
-                    }
-                }
+/** Título y botón de actualizar. */
+@Composable
+private fun AdminHeader(isRefreshing: Boolean, onRefresh: () -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = stringResource(R.string.admin_title),
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.Bold
+        )
+        FilledTonalButton(onClick = onRefresh, enabled = !isRefreshing) {
+            if (isRefreshing) {
+                CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+            } else {
+                Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(18.dp))
             }
+            Spacer(modifier = Modifier.size(6.dp))
+            Text(stringResource(R.string.admin_refresh))
         }
+    }
+}
+
+@Composable
+private fun StatusMessage(message: String) {
+    Spacer(modifier = Modifier.height(6.dp))
+    Card(
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Text(
+            text = message,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSecondaryContainer,
+            modifier = Modifier.padding(10.dp)
+        )
+    }
+}
+
+/** Celular y plegable: una lista a la vez, elegida con pestañas. */
+@Composable
+private fun AdminTabs(uiState: AdminUiState, lists: AdminLists) {
+    var selectedTab by remember { mutableIntStateOf(0) }
+    val columns = if (LocalWindowSize.current.hasRoomForTwoColumns) 2 else 1
+
+    TabRow(selectedTabIndex = selectedTab) {
+        listOf(
+            stringResource(R.string.admin_tab_users, uiState.users.size),
+            stringResource(R.string.admin_tab_orders, uiState.orders.size),
+            stringResource(R.string.admin_tab_products, uiState.products.size)
+        ).forEachIndexed { index, title ->
+            Tab(selected = selectedTab == index, onClick = { selectedTab = index }, text = { Text(title) })
+        }
+    }
+    Spacer(modifier = Modifier.height(10.dp))
+
+    when (selectedTab) {
+        0 -> lists.userList(columns)
+        1 -> lists.orderList(columns)
+        else -> lists.productList(columns)
+    }
+}
+
+/** Tablet grande: usuarios, pedidos y productos lado a lado, cada uno con su título. */
+@Composable
+private fun AdminDashboard(uiState: AdminUiState, lists: AdminLists) {
+    Row(modifier = Modifier.fillMaxSize(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+        DashboardColumn(stringResource(R.string.admin_tab_users, uiState.users.size), Modifier.weight(1f)) { lists.userList(1) }
+        DashboardColumn(stringResource(R.string.admin_tab_orders, uiState.orders.size), Modifier.weight(1f)) { lists.orderList(1) }
+        DashboardColumn(stringResource(R.string.admin_tab_products, uiState.products.size), Modifier.weight(1f)) { lists.productList(1) }
+    }
+}
+
+@Composable
+private fun DashboardColumn(title: String, modifier: Modifier, content: @Composable () -> Unit) {
+    Column(modifier = modifier) {
+        Text(text = title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+        Spacer(modifier = Modifier.height(8.dp))
+        content()
+    }
+}
+
+@Composable
+private fun UserList(users: List<ManagedUser>, columns: Int, onChangeRole: (Long, UserRole) -> Unit) {
+    CardGrid(users, key = { it.username }, columns = columns) { AdminUserCard(user = it, onChangeRole = onChangeRole) }
+}
+
+@Composable
+private fun OrderList(orders: List<Order>, columns: Int, onChangeStatus: (Long, String) -> Unit) {
+    CardGrid(orders, key = { it.id }, columns = columns) { AdminOrderCard(order = it, onChangeStatus = onChangeStatus) }
+}
+
+@Composable
+private fun ProductList(products: List<Product>, columns: Int, onDelete: (Product) -> Unit) {
+    CardGrid(products, key = { it.id }, columns = columns) { AdminProductCard(product = it, onDelete = { onDelete(it) }) }
+}
+
+/** Tarjetas en [columns] columnas con desplazamiento. Sirve para cualquier tipo de elemento. */
+@Composable
+private fun <T> CardGrid(items: List<T>, key: (T) -> Any, columns: Int, card: @Composable (T) -> Unit) {
+    LazyVerticalGrid(
+        columns = GridCells.Fixed(columns),
+        contentPadding = PaddingValues(bottom = 80.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        modifier = Modifier.fillMaxSize()
+    ) {
+        items(items, key = key) { item -> card(item) }
     }
 }
 

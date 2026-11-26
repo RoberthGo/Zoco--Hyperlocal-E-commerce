@@ -24,7 +24,6 @@ import com.example.zoco.ui.common.Breakpoints
 import com.example.zoco.ui.common.LocalWindowSize
 import com.example.zoco.ui.common.WidthClass
 import com.example.zoco.ui.common.WindowSize
-import com.example.zoco.ui.common.roleText
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Badge
@@ -349,7 +348,13 @@ private fun DrawerHeader(session: UserSession) {
             maxLines = 1
         )
         Text(
-            text = roleText(session.role),
+            text = stringResource(
+                when (session.role) {
+                    UserRole.BUYER -> R.string.role_buyer
+                    UserRole.SELLER -> R.string.role_seller
+                    UserRole.ADMIN -> R.string.role_admin
+                }
+            ),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )

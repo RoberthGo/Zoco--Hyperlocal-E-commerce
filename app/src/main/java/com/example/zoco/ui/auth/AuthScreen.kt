@@ -37,6 +37,16 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material3.IconButton
+import androidx.compose.ui.text.input.VisualTransformation
+import com.example.zoco.ui.common.LocalWindowSize
 import com.example.zoco.R
 
 /**
@@ -87,33 +97,11 @@ fun AuthScreen(
         }
     }
 
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = 24.dp, vertical = 32.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        Icon(
-            Icons.Default.Storefront,
-            contentDescription = null,
-            modifier = Modifier.size(64.dp),
-            tint = MaterialTheme.colorScheme.primary
-        )
-        Text(
-            text = stringResource(R.string.auth_welcome_title),
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold
-        )
-        Text(
-            text = stringResource(R.string.auth_welcome_subtitle),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.outline,
-            textAlign = TextAlign.Center
-        )
-        Spacer(modifier = Modifier.height(4.dp))
+    val windowSize = LocalWindowSize.current
+    val useSplitLayout = windowSize.hasRoomForTwoColumns
 
+    // Campos y botón; se dibujan igual en todos los tamaños, solo cambia dónde se colocan
+    val form = @Composable {
         TabRow(selectedTabIndex = tabIndex) {
             Tab(
                 selected = !isRegister,
@@ -162,26 +150,18 @@ fun AuthScreen(
                 modifier = Modifier.fillMaxWidth()
             )
         }
-        OutlinedTextField(
+        PasswordField(
             value = password,
             onValueChange = { password = it },
-            label = { Text(stringResource(R.string.auth_password_label)) },
-            visualTransformation = PasswordVisualTransformation(),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-            singleLine = true,
-            enabled = !uiState.isLoading,
-            modifier = Modifier.fillMaxWidth()
+            label = stringResource(R.string.auth_password_label),
+            enabled = !uiState.isLoading
         )
         if (isRegister) {
-            OutlinedTextField(
+            PasswordField(
                 value = confirmPassword,
                 onValueChange = { confirmPassword = it },
-                label = { Text(stringResource(R.string.auth_confirm_password_label)) },
-                visualTransformation = PasswordVisualTransformation(),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                singleLine = true,
-                enabled = !uiState.isLoading,
-                modifier = Modifier.fillMaxWidth()
+                label = stringResource(R.string.auth_confirm_password_label),
+                enabled = !uiState.isLoading
             )
             Text(
                 text = stringResource(R.string.auth_register_note),
@@ -214,4 +194,105 @@ fun AuthScreen(
             }
         }
     }
+
+    if (useSplitLayout) {
+        // Tablet o plegable: panel con la marca a la izquierda y el formulario a la derecha
+        Row(modifier = modifier.fillMaxSize()) {
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight()
+                    .background(MaterialTheme.colorScheme.primaryContainer)
+                    .padding(32.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier.widthIn(max = FORM_MAX_WIDTH)
+                ) {
+                    AuthBrandHeader(onColoredBackground = true)
+                }
+            }
+            Box(
+                modifier = Modifier.weight(1f).fillMaxHeight(),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(
+                    modifier = Modifier
+                        .widthIn(max = FORM_MAX_WIDTH)
+                        .verticalScroll(rememberScrollState())
+                        .padding(horizontal = 24.dp, vertical = 32.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) { form() }
+            }
+        }
+    } else {
+        // Celular: marca arriba y formulario debajo
+        Column(
+            modifier = modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 24.dp, vertical = 32.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            AuthBrandHeader(onColoredBackground = false)
+            Spacer(modifier = Modifier.height(4.dp))
+            form()
+        }
+    }
+}
+
+/** Ancho máximo del formulario para que no se estire en pantallas grandes. */
+private val FORM_MAX_WIDTH = 420.dp
+
+/** Logo, nombre de bienvenida y subtítulo de la app. */
+@Composable
+private fun AuthBrandHeader(onColoredBackground: Boolean) {
+    val titleColor = if (onColoredBackground) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface
+    val subtitleColor = if (onColoredBackground) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.outline
+    Icon(
+        Icons.Default.Storefront,
+        contentDescription = null,
+        modifier = Modifier.size(if (onColoredBackground) 96.dp else 64.dp),
+        tint = MaterialTheme.colorScheme.primary
+    )
+    Text(
+        text = stringResource(R.string.auth_welcome_title),
+        style = MaterialTheme.typography.headlineMedium,
+        fontWeight = FontWeight.Bold,
+        color = titleColor,
+        textAlign = TextAlign.Center
+    )
+    Text(
+        text = stringResource(R.string.auth_welcome_subtitle),
+        style = MaterialTheme.typography.bodyMedium,
+        color = subtitleColor,
+        textAlign = TextAlign.Center
+    )
+}
+
+/** Campo de contraseña con un ojo para mostrarla u ocultarla. */
+@Composable
+private fun PasswordField(value: String, onValueChange: (String) -> Unit, label: String, enabled: Boolean) {
+    var visible by rememberSaveable { mutableStateOf(false) }
+    OutlinedTextField(
+        value = value,
+        onValueChange = onValueChange,
+        label = { Text(label) },
+        visualTransformation = if (visible) VisualTransformation.None else PasswordVisualTransformation(),
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+        trailingIcon = {
+            IconButton(onClick = { visible = !visible }) {
+                Icon(
+                    imageVector = if (visible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                    contentDescription = stringResource(if (visible) R.string.auth_hide_password else R.string.auth_show_password)
+                )
+            }
+        },
+        singleLine = true,
+        enabled = enabled,
+        modifier = Modifier.fillMaxWidth()
+    )
 }

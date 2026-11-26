@@ -2,6 +2,7 @@ package com.example.zoco.ui.catalog
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -51,6 +52,9 @@ import kotlinx.coroutines.launch
 /** Ancho del panel de detalle que aparece a la derecha en tablets grandes. */
 private val DETAIL_PANEL_WIDTH = 380.dp
 
+/** Ancho mínimo del contenido (sin menú lateral) para mostrar el panel de detalle. */
+private val DETAIL_PANEL_MIN_CONTENT_WIDTH = 800.dp
+
 /**
  * Catálogo de productos. Se ve distinto según el tamaño de la ventana:
  *  - celular: una columna; al tocar "Agregar" sube una hoja para elegir la cantidad.
@@ -69,7 +73,6 @@ fun CatalogScreen(
     snackbarHostState: SnackbarHostState,
     modifier: Modifier = Modifier
 ) {
-    val windowSize = LocalWindowSize.current
     val scope = rememberCoroutineScope()
     val addedMessage = stringResource(R.string.added_to_cart)
     var pickedProduct by remember { mutableStateOf<Product?>(null) }
@@ -82,6 +85,10 @@ fun CatalogScreen(
     // En la tablet el panel siempre muestra la versión más reciente del producto elegido
     val pickedNow = pickedProduct?.let { picked -> uiState.products.firstOrNull { it.id == picked.id } }
 
+    BoxWithConstraints(modifier = modifier.fillMaxSize()) {
+    // El panel de detalle solo cabe si el contenido es ancho; si no, se usa la hoja de abajo
+    val showDetailPanel = LocalWindowSize.current.isExpanded && maxWidth >= DETAIL_PANEL_MIN_CONTENT_WIDTH
+
     val productList = @Composable { listModifier: Modifier ->
         ProductListPane(
             uiState = uiState,
@@ -91,13 +98,13 @@ fun CatalogScreen(
             onSyncWeb = onSyncWeb,
             onDeleteProduct = onDeleteProduct,
             onProductPicked = { pickedProduct = it },
-            selectedProductId = if (windowSize.isExpanded) pickedNow?.id else null,
+            selectedProductId = if (showDetailPanel) pickedNow?.id else null,
             modifier = listModifier
         )
     }
 
-    if (windowSize.isExpanded) {
-        Row(modifier = modifier.fillMaxSize()) {
+    if (showDetailPanel) {
+        Row(modifier = Modifier.fillMaxSize()) {
             productList(Modifier.weight(1f))
             VerticalDivider(modifier = Modifier.fillMaxHeight())
             ProductDetailPanel(
@@ -109,7 +116,7 @@ fun CatalogScreen(
             )
         }
     } else {
-        productList(modifier.fillMaxSize())
+        productList(Modifier.fillMaxSize())
         pickedProduct?.let { product ->
             ProductPurchaseBottomSheet(
                 product = product,
@@ -120,6 +127,7 @@ fun CatalogScreen(
                 }
             )
         }
+    }
     }
 }
 

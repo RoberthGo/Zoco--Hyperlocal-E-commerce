@@ -11,7 +11,6 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -66,6 +65,8 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import coil.compose.AsyncImage
 import androidx.compose.material3.Surface
+import com.example.zoco.domain.model.Order
+import com.example.zoco.ui.common.LocalWindowSize
 import com.example.zoco.R
 import com.example.zoco.domain.model.Product
 import com.example.zoco.domain.model.ProductCategory
@@ -74,6 +75,27 @@ import com.example.zoco.ui.common.DeviceScreenSizePreviews
 import com.example.zoco.ui.theme.ZocoTheme
 import java.io.File
 
+/** Todos los campos y botones del vendedor agrupados, para pasarlos de una pieza a otra sin repetir una lista larga. */
+private class SellerActions(
+    val onNameChange: (String) -> Unit,
+    val onDescriptionChange: (String) -> Unit,
+    val onPriceChange: (String) -> Unit,
+    val onStockChange: (String) -> Unit,
+    val onCategoryChange: (ProductCategory) -> Unit,
+    val onProducerNameChange: (String) -> Unit,
+    val onExpressChange: (Boolean) -> Unit,
+    val onImageUriChange: (String?) -> Unit,
+    val onSaveProduct: () -> Unit,
+    val onDeleteOwnProduct: (Product) -> Unit,
+    val onUpdateOrderStatus: (Long, String) -> Unit
+)
+
+/**
+ * Pantalla del vendedor: publicar productos, ver los propios y atender los pedidos recibidos.
+ *  - celular y plegable: tres pestañas (en plegable, el formulario se muestra junto a la vista previa).
+ *  - tablet grande: sin pestañas principales; formulario a la izquierda, y a la derecha
+ *    "Mis productos" y "Pedidos" en un panel con pestañas.
+ */
 @Composable
 fun SellerScreen(
     uiState: SellerUiState,
@@ -90,247 +112,261 @@ fun SellerScreen(
     onUpdateOrderStatus: (Long, String) -> Unit = { _, _ -> },
     modifier: Modifier = Modifier
 ) {
-    var selectedTab by remember { mutableIntStateOf(0) }
+    val actions = SellerActions(
+        onNameChange, onDescriptionChange, onPriceChange, onStockChange, onCategoryChange,
+        onProducerNameChange, onExpressChange, onImageUriChange, onSaveProduct,
+        onDeleteOwnProduct, onUpdateOrderStatus
+    )
 
     Column(modifier = modifier.fillMaxSize()) {
-        TabRow(selectedTabIndex = selectedTab) {
-            Tab(
-                selected = selectedTab == 0,
-                onClick = { selectedTab = 0 },
-                text = { Text(stringResource(R.string.seller_tab_publish)) }
-            )
-            Tab(
-                selected = selectedTab == 1,
-                onClick = { selectedTab = 1 },
-                text = { Text(stringResource(R.string.seller_tab_my_products, uiState.myProducts.size)) }
-            )
-            Tab(
-                selected = selectedTab == 2,
-                onClick = { selectedTab = 2 },
-                text = { Text(stringResource(R.string.seller_tab_orders, uiState.receivedOrders.size)) }
+        uiState.actionMessage?.let { ActionMessageBanner(it) }
+        if (LocalWindowSize.current.isExpanded) {
+            SellerDashboardLayout(uiState, actions)
+        } else {
+            SellerTabsLayout(uiState, actions)
+        }
+    }
+}
+
+/** Celular y plegable: una pestaña a la vez. */
+@Composable
+private fun SellerTabsLayout(uiState: SellerUiState, actions: SellerActions) {
+    var selectedTab by remember { mutableIntStateOf(0) }
+    val titles = listOf(
+        stringResource(R.string.seller_tab_publish),
+        stringResource(R.string.seller_tab_my_products, uiState.myProducts.size),
+        stringResource(R.string.seller_tab_orders, uiState.receivedOrders.size)
+    )
+    TabTitles(titles, selectedTab) { selectedTab = it }
+
+    when (selectedTab) {
+        0 -> PublishTab(uiState, actions)
+        1 -> OwnProductsList(uiState.myProducts, actions.onDeleteOwnProduct)
+        else -> ReceivedOrdersList(uiState.receivedOrders, actions.onUpdateOrderStatus)
+    }
+}
+
+/** Tablet grande: publicar a la izquierda, productos y pedidos a la derecha. */
+@Composable
+private fun SellerDashboardLayout(uiState: SellerUiState, actions: SellerActions) {
+    var selectedTab by remember { mutableIntStateOf(0) }
+    Row(modifier = Modifier.fillMaxSize().padding(16.dp), horizontalArrangement = Arrangement.spacedBy(20.dp)) {
+        Column(
+            modifier = Modifier.weight(1f).verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            SellerFormContent(
+                uiState = uiState,
+                onNameChange = actions.onNameChange,
+                onDescriptionChange = actions.onDescriptionChange,
+                onPriceChange = actions.onPriceChange,
+                onStockChange = actions.onStockChange,
+                onCategoryChange = actions.onCategoryChange,
+                onProducerNameChange = actions.onProducerNameChange,
+                onExpressChange = actions.onExpressChange,
+                onImageUriChange = actions.onImageUriChange,
+                onSaveProduct = actions.onSaveProduct
             )
         }
-
-        if (uiState.actionMessage != null) {
-            Card(
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 6.dp)
-            ) {
-                Text(
-                    text = uiState.actionMessage,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSecondaryContainer,
-                    modifier = Modifier.padding(10.dp)
-                )
+        Column(modifier = Modifier.weight(1f)) {
+            TabTitles(
+                titles = listOf(
+                    stringResource(R.string.seller_tab_my_products, uiState.myProducts.size),
+                    stringResource(R.string.seller_tab_orders, uiState.receivedOrders.size)
+                ),
+                selectedIndex = selectedTab,
+                onSelect = { selectedTab = it }
+            )
+            if (selectedTab == 0) {
+                OwnProductsList(uiState.myProducts, actions.onDeleteOwnProduct, columns = 1)
+            } else {
+                ReceivedOrdersList(uiState.receivedOrders, actions.onUpdateOrderStatus)
             }
         }
+    }
+}
 
-        BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-            val isWide = maxWidth >= 600.dp
+/** Fila de pestañas. */
+@Composable
+private fun TabTitles(titles: List<String>, selectedIndex: Int, onSelect: (Int) -> Unit) {
+    TabRow(selectedTabIndex = selectedIndex) {
+        titles.forEachIndexed { index, title ->
+            Tab(selected = selectedIndex == index, onClick = { onSelect(index) }, text = { Text(title) })
+        }
+    }
+}
 
-            when (selectedTab) {
-                0 -> {
-                    if (isWide) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(16.dp),
-                            horizontalArrangement = Arrangement.spacedBy(20.dp)
-                        ) {
-                            Column(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .verticalScroll(rememberScrollState()),
-                                verticalArrangement = Arrangement.spacedBy(12.dp)
-                            ) {
-                                SellerFormContent(
-                                    uiState = uiState,
-                                    onNameChange = onNameChange,
-                                    onDescriptionChange = onDescriptionChange,
-                                    onPriceChange = onPriceChange,
-                                    onStockChange = onStockChange,
-                                    onCategoryChange = onCategoryChange,
-                                    onProducerNameChange = onProducerNameChange,
-                                    onExpressChange = onExpressChange,
-                                    onImageUriChange = onImageUriChange,
-                                    onSaveProduct = onSaveProduct
-                                )
-                            }
+/** Mensaje corto de lo que acaba de pasar ("Producto publicado", "Pedido actualizado"...). */
+@Composable
+private fun ActionMessageBanner(message: String) {
+    Card(
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp)
+    ) {
+        Text(
+            text = message,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSecondaryContainer,
+            modifier = Modifier.padding(10.dp)
+        )
+    }
+}
 
-                            Column(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .verticalScroll(rememberScrollState()),
-                                verticalArrangement = Arrangement.spacedBy(12.dp)
-                            ) {
-                                Text(
-                                    text = stringResource(R.string.seller_preview_title),
-                                    style = MaterialTheme.typography.titleLarge,
-                                    fontWeight = FontWeight.Bold
-                                )
-                                Text(
-                                    text = stringResource(R.string.seller_preview_subtitle),
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.outline
-                                )
+/** Pestaña "Publicar": formulario solo (celular) o formulario junto a la vista previa (plegable). */
+@Composable
+private fun PublishTab(uiState: SellerUiState, actions: SellerActions) {
+    val form = @Composable {
+        SellerFormContent(
+            uiState = uiState,
+            onNameChange = actions.onNameChange,
+            onDescriptionChange = actions.onDescriptionChange,
+            onPriceChange = actions.onPriceChange,
+            onStockChange = actions.onStockChange,
+            onCategoryChange = actions.onCategoryChange,
+            onProducerNameChange = actions.onProducerNameChange,
+            onExpressChange = actions.onExpressChange,
+            onImageUriChange = actions.onImageUriChange,
+            onSaveProduct = actions.onSaveProduct
+        )
+    }
+    if (LocalWindowSize.current.hasRoomForTwoColumns) {
+        Row(modifier = Modifier.fillMaxSize().padding(16.dp), horizontalArrangement = Arrangement.spacedBy(20.dp)) {
+            Column(
+                modifier = Modifier.weight(1f).verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) { form() }
+            Column(
+                modifier = Modifier.weight(1f).verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) { ProductPreview(uiState) }
+        }
+    } else {
+        Column(
+            modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) { form() }
+    }
+}
 
-                                Spacer(modifier = Modifier.height(8.dp))
+/** Cómo se verá el producto en el catálogo mientras se llena el formulario. */
+@Composable
+private fun ProductPreview(uiState: SellerUiState) {
+    Text(
+        text = stringResource(R.string.seller_preview_title),
+        style = MaterialTheme.typography.titleLarge,
+        fontWeight = FontWeight.Bold
+    )
+    Text(
+        text = stringResource(R.string.seller_preview_subtitle),
+        style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.outline
+    )
+    Spacer(modifier = Modifier.height(8.dp))
+    val previewProduct = Product(
+        id = 0,
+        name = uiState.name.ifBlank { stringResource(R.string.placeholder_product_name) },
+        description = uiState.description.ifBlank { stringResource(R.string.placeholder_description) },
+        price = uiState.price.toDoubleOrNull() ?: 0.0,
+        stock = uiState.stock.toIntOrNull() ?: 10,
+        category = uiState.category,
+        producerName = uiState.producerName.ifBlank { stringResource(R.string.placeholder_producer_name) },
+        isExpressDelivery = uiState.isExpressDelivery,
+        isRemote = false,
+        imageUrl = uiState.imageUri
+    )
+    ProductItemCard(product = previewProduct, onAddToCart = {})
+}
 
-                                val previewProduct = Product(
-                                    id = 0,
-                                    name = uiState.name.ifBlank { stringResource(R.string.placeholder_product_name) },
-                                    description = uiState.description.ifBlank { stringResource(R.string.placeholder_description) },
-                                    price = uiState.price.toDoubleOrNull() ?: 0.0,
-                                    stock = uiState.stock.toIntOrNull() ?: 10,
-                                    category = uiState.category,
-                                    producerName = uiState.producerName.ifBlank { stringResource(R.string.placeholder_producer_name) },
-                                    isExpressDelivery = uiState.isExpressDelivery,
-                                    isRemote = false,
-                                    imageUrl = uiState.imageUri
-                                )
+/** Lista de los productos del vendedor. [columns] = null: 1 en celular y 2 si hay espacio. */
+@Composable
+private fun OwnProductsList(products: List<Product>, onDelete: (Product) -> Unit, columns: Int? = null) {
+    if (products.isEmpty()) {
+        EmptyListMessage(stringResource(R.string.seller_no_products))
+        return
+    }
+    val columnCount = columns ?: if (LocalWindowSize.current.hasRoomForTwoColumns) 2 else 1
+    LazyVerticalGrid(
+        columns = GridCells.Fixed(columnCount),
+        contentPadding = PaddingValues(16.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        items(products, key = { it.id }) { product ->
+            SellerOwnProductCard(product = product, onDelete = { onDelete(product) })
+        }
+    }
+}
 
-                                ProductItemCard(
-                                    product = previewProduct,
-                                    onAddToCart = {}
-                                )
-                            }
-                        }
-                    } else {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .verticalScroll(rememberScrollState())
-                                .padding(16.dp),
-                            verticalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            SellerFormContent(
-                                uiState = uiState,
-                                onNameChange = onNameChange,
-                                onDescriptionChange = onDescriptionChange,
-                                onPriceChange = onPriceChange,
-                                onStockChange = onStockChange,
-                                onCategoryChange = onCategoryChange,
-                                onProducerNameChange = onProducerNameChange,
-                                onExpressChange = onExpressChange,
-                                onImageUriChange = onImageUriChange,
-                                onSaveProduct = onSaveProduct
-                            )
-                        }
-                    }
-                }
-                1 -> {
-                    if (uiState.myProducts.isEmpty()) {
-                        Box(modifier = Modifier.fillMaxSize().padding(16.dp), contentAlignment = Alignment.Center) {
-                            Text(
-                                text = stringResource(R.string.seller_no_products),
-                                style = MaterialTheme.typography.bodyLarge
-                            )
-                        }
-                    } else if (isWide) {
-                        LazyVerticalGrid(
-                            columns = GridCells.Fixed(2),
-                            contentPadding = PaddingValues(16.dp),
-                            verticalArrangement = Arrangement.spacedBy(10.dp),
-                            horizontalArrangement = Arrangement.spacedBy(10.dp)
-                        ) {
-                            items(uiState.myProducts, key = { it.id }) { product ->
-                                SellerOwnProductCard(
-                                    product = product,
-                                    onDelete = { onDeleteOwnProduct(product) }
-                                )
-                            }
-                        }
-                    } else {
-                        LazyColumn(
-                            contentPadding = PaddingValues(16.dp),
-                            verticalArrangement = Arrangement.spacedBy(10.dp)
-                        ) {
-                            items(uiState.myProducts, key = { it.id }) { product ->
-                                SellerOwnProductCard(
-                                    product = product,
-                                    onDelete = { onDeleteOwnProduct(product) }
-                                )
-                            }
-                        }
-                    }
-                }
-                else -> {
-                    if (uiState.receivedOrders.isEmpty()) {
-                        Box(modifier = Modifier.fillMaxSize().padding(16.dp), contentAlignment = Alignment.Center) {
-                            Text(
-                                text = stringResource(R.string.seller_no_orders),
-                                style = MaterialTheme.typography.bodyLarge
-                            )
-                        }
-                    } else {
-                        LazyColumn(
-                            contentPadding = PaddingValues(16.dp),
-                            verticalArrangement = Arrangement.spacedBy(10.dp)
-                        ) {
-                            items(uiState.receivedOrders, key = { it.id }) { order ->
-                                Card(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-                                ) {
-                                    Column(modifier = Modifier.padding(12.dp)) {
-                                        Row(
-                                            modifier = Modifier.fillMaxWidth(),
-                                            horizontalArrangement = Arrangement.SpaceBetween,
-                                            verticalAlignment = Alignment.CenterVertically
-                                        ) {
-                                            Text(
-                                                text = stringResource(R.string.order_number_label, order.id),
-                                                style = MaterialTheme.typography.titleSmall,
-                                                fontWeight = FontWeight.Bold
-                                            )
-                                            Text(
-                                                text = orderStatusLabel(order.status),
-                                                style = MaterialTheme.typography.labelSmall,
-                                                fontWeight = FontWeight.Bold,
-                                                color = MaterialTheme.colorScheme.primary
-                                            )
-                                        }
-                                        if (order.customerName.isNotBlank()) {
-                                            Text(
-                                                text = stringResource(R.string.order_customer_label, order.customerName),
-                                                style = MaterialTheme.typography.bodySmall
-                                            )
-                                        }
-                                        if (order.itemSummary.isNotBlank()) {
-                                            Text(
-                                                text = order.itemSummary,
-                                                style = MaterialTheme.typography.bodySmall,
-                                                color = MaterialTheme.colorScheme.outline
-                                            )
-                                        }
-                                        Spacer(modifier = Modifier.height(6.dp))
-                                        Row(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .horizontalScroll(rememberScrollState()),
-                                            horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                        ) {
-                                            listOf(
-                                                "CONFIRMED" to stringResource(R.string.btn_mark_confirmed),
-                                                "PREPARING" to stringResource(R.string.btn_mark_preparing),
-                                                "OUT_FOR_DELIVERY" to stringResource(R.string.btn_mark_delivery),
-                                                "DELIVERED" to stringResource(R.string.btn_mark_delivered)
-                                            ).forEach { (statusCode, label) ->
-                                                OutlinedButton(
-                                                    onClick = { onUpdateOrderStatus(order.id, statusCode) },
-                                                    enabled = order.status != statusCode,
-                                                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
-                                                ) {
-                                                    Text(label, style = MaterialTheme.typography.labelSmall)
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
+/** Lista de pedidos que incluyen productos del vendedor, con botones para cambiar su estado. */
+@Composable
+private fun ReceivedOrdersList(orders: List<Order>, onUpdateStatus: (Long, String) -> Unit) {
+    if (orders.isEmpty()) {
+        EmptyListMessage(stringResource(R.string.seller_no_orders))
+        return
+    }
+    LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        items(orders, key = { it.id }) { order -> ReceivedOrderCard(order, onUpdateStatus) }
+    }
+}
+
+@Composable
+private fun EmptyListMessage(text: String) {
+    Box(modifier = Modifier.fillMaxSize().padding(16.dp), contentAlignment = Alignment.Center) {
+        Text(text = text, style = MaterialTheme.typography.bodyLarge)
+    }
+}
+
+/** Un pedido recibido: número, estado, cliente, productos y botones para avanzar el estado. */
+@Composable
+private fun ReceivedOrderCard(order: Order, onUpdateStatus: (Long, String) -> Unit) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+    ) {
+        Column(modifier = Modifier.padding(12.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = stringResource(R.string.order_number_label, order.id),
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = orderStatusLabel(order.status),
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+            if (order.customerName.isNotBlank()) {
+                Text(
+                    text = stringResource(R.string.order_customer_label, order.customerName),
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+            if (order.itemSummary.isNotBlank()) {
+                Text(text = order.itemSummary, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.outline)
+            }
+            Spacer(modifier = Modifier.height(6.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                listOf(
+                    "CONFIRMED" to stringResource(R.string.btn_mark_confirmed),
+                    "PREPARING" to stringResource(R.string.btn_mark_preparing),
+                    "OUT_FOR_DELIVERY" to stringResource(R.string.btn_mark_delivery),
+                    "DELIVERED" to stringResource(R.string.btn_mark_delivered)
+                ).forEach { (statusCode, label) ->
+                    OutlinedButton(
+                        onClick = { onUpdateStatus(order.id, statusCode) },
+                        enabled = order.status != statusCode,
+                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
+                    ) {
+                        Text(label, style = MaterialTheme.typography.labelSmall)
                     }
                 }
             }

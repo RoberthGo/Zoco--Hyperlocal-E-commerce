@@ -25,7 +25,7 @@ import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Groups
-import androidx.compose.material.icons.filled.Logout
+import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material.icons.filled.Storefront
 import androidx.compose.material3.AlertDialog
@@ -57,6 +57,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import coil.compose.AsyncImage
+import androidx.compose.foundation.layout.widthIn
+import com.example.zoco.ui.common.LocalWindowSize
 import com.example.zoco.R
 import com.example.zoco.domain.model.UserRole
 import java.io.File
@@ -81,30 +83,49 @@ fun ProfileScreen(
     onLogout: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp)
-    ) {
-        Text(
-            text = stringResource(R.string.profile_title),
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Bold
-        )
-
+    // Tarjetas de la cuenta (foto, vendedor, cerrar sesión) y tarjetas de ajustes (idioma, equipo)
+    val accountCards = @Composable {
         ProfileHeaderCard(uiState, onUpdatePhoto, onUpdateName)
-
         if (uiState.currentSession.role == UserRole.BUYER) {
             BecomeSellerCard(onBecomeSeller)
         }
-
         LogoutCard(isBusy = uiState.isAuthLoading, onLogout = onLogout)
+    }
+    val settingsCards = @Composable {
         LanguageCard(selectedLanguage = uiState.selectedLanguage, onLanguageChange = onLanguageChange)
         TeamCard()
     }
+
+    Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
+        Column(
+            modifier = Modifier
+                .widthIn(max = PROFILE_MAX_WIDTH)
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            Text(
+                text = stringResource(R.string.profile_title),
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold
+            )
+            if (LocalWindowSize.current.hasRoomForTwoColumns) {
+                // Tablet o plegable: cuenta a la izquierda, ajustes a la derecha
+                Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                    Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(14.dp)) { accountCards() }
+                    Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(14.dp)) { settingsCards() }
+                }
+            } else {
+                accountCards()
+                settingsCards()
+            }
+        }
+    }
 }
+
+/** Ancho máximo del contenido del perfil en pantallas muy anchas. */
+private val PROFILE_MAX_WIDTH = 960.dp
 
 // ---------------------------------------------------------------------------------------------
 // 1. Foto, nombre y rol
@@ -484,7 +505,7 @@ private fun LogoutCard(isBusy: Boolean, onLogout: () -> Unit) {
                 enabled = !isBusy,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Icon(Icons.Default.Logout, contentDescription = null, modifier = Modifier.size(18.dp))
+                Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(modifier = Modifier.size(6.dp))
                 Text(stringResource(R.string.btn_logout))
             }
