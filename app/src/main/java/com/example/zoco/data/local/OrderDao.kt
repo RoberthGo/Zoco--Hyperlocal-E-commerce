@@ -41,6 +41,10 @@ interface OrderDao {
     @Query("SELECT * FROM orders WHERE pendingSync = 1")
     suspend fun getPendingOrders(): List<OrderEntity>
 
+    /** Borra todos los pedidos guardados en el teléfono (al cerrar sesión). */
+    @Query("DELETE FROM orders")
+    suspend fun clearAll(): Int
+
     /** Borra los 2 pedidos de ejemplo (ids 101 y 102, estado LOCAL_STORED) que guardaban versiones anteriores. */
     @Query("DELETE FROM orders WHERE id IN (101, 102) AND status = 'LOCAL_STORED' AND isRemote = 0 AND pendingSync = 0")
     suspend fun deleteOldSampleOrders(): Int

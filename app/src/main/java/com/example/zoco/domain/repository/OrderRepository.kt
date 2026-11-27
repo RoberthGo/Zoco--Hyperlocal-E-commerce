@@ -19,6 +19,9 @@ interface OrderRepository {
 
     /** Borra los pedidos de ejemplo con nombres inventados que versiones anteriores de la app guardaron. */
     suspend fun removeSampleOrders()
+
+    /** Borra los pedidos guardados en el teléfono para que otra cuenta no los vea. */
+    suspend fun clearLocalOrders()
     suspend fun updateOrderStatus(orderId: Long, newStatus: String): Boolean
     suspend fun deleteOrder(id: Long): Boolean
 }

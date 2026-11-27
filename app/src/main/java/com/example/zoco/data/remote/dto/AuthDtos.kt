@@ -100,3 +100,14 @@ data class AvatarResponseDto(
     @Json(name = "user") val user: UserDto,
     @Json(name = "message") val message: String = ""
 )
+
+@JsonClass(generateAdapter = true)
+data class ChangePasswordRequestDto(
+    @Json(name = "current_password") val currentPassword: String,
+    @Json(name = "new_password") val newPassword: String
+)
+
+@JsonClass(generateAdapter = true)
+data class TokenResponseDto(
+    @Json(name = "token") val token: String
+)

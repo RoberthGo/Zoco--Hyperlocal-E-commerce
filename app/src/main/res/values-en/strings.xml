@@ -157,4 +157,11 @@
     <string name="pick_product_hint">Pick a product from the list to see its details and buy it.</string>
     <string name="auth_show_password">Show password</string>
     <string name="auth_hide_password">Hide password</string>
+    <string name="notifications_title">Notifications</string>
+    <string name="notifications_empty">You have no notifications.</string>
+    <string name="notifications_mark_all">Mark all as read</string>
+    <string name="notifications_close">Close</string>
+    <string name="btn_change_password">Change password</string>
+    <string name="password_current">Current password</string>
+    <string name="password_new">New password</string>
 </resources>

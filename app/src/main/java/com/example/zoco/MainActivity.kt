@@ -1,5 +1,12 @@
 package com.example.zoco
 
+import com.example.zoco.ui.notifications.NotificationsViewModel
+import com.example.zoco.ui.notifications.NotificationsDialog
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.material3.IconButton
+import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.Icons
 import android.content.Context
 import android.content.res.Configuration
 import android.os.Build
@@ -88,7 +95,8 @@ class MainActivity : ComponentActivity() {
             networkConnectivityChecker = app.networkConnectivityChecker,
             sharedPreferences = prefs,
             authRepository = app.authRepository,
-            findServer = app.serverDiscovery::findServer
+            findServer = app.serverDiscovery::findServer,
+            notificationRepository = app.notificationRepository
         )
 
         setContent {
@@ -122,6 +130,7 @@ fun ZocoApp(
     val adminViewModel: AdminViewModel = viewModel(factory = viewModelFactory)
     val profileViewModel: ProfileViewModel = viewModel(factory = viewModelFactory)
     val authViewModel: AuthViewModel = viewModel(factory = viewModelFactory)
+    val notificationsViewModel: NotificationsViewModel = viewModel(factory = viewModelFactory)
 
     val catalogState by catalogViewModel.uiState.collectAsStateWithLifecycle()
     val cartState by cartViewModel.uiState.collectAsStateWithLifecycle()
@@ -129,6 +138,8 @@ fun ZocoApp(
     val adminState by adminViewModel.uiState.collectAsStateWithLifecycle()
     val profileState by profileViewModel.uiState.collectAsStateWithLifecycle()
     val authState by authViewModel.uiState.collectAsStateWithLifecycle()
+    val notificationsState by notificationsViewModel.uiState.collectAsStateWithLifecycle()
+    var showNotifications by remember { mutableStateOf(false) }
 
     val session = profileState.currentSession
     val isLoggedIn = session.isLoggedIn
@@ -148,9 +159,18 @@ fun ZocoApp(
         }
     }
 
+    // Al cerrar sesión se olvidan las notificaciones de esa cuenta
+    LaunchedEffect(isLoggedIn) {
+        if (!isLoggedIn) {
+            notificationsViewModel.clear()
+            showNotifications = false
+        }
+    }
+
     // Al iniciar sesión (o cambiar de usuario/rol) se descargan los datos del servidor.
     LaunchedEffect(session.username, session.role) {
         if (!isLoggedIn) return@LaunchedEffect
+        notificationsViewModel.refresh()
         catalogViewModel.syncFromWeb()
         cartViewModel.syncOrdersFromWeb()
         if (session.role == UserRole.ADMIN) {
@@ -174,6 +194,15 @@ fun ZocoApp(
             profileState = profileState,
             snackbarHostState = snackbarHostState,
             modifier = contentModifier
+        )
+    }
+
+    if (showNotifications && isLoggedIn) {
+        NotificationsDialog(
+            state = notificationsState,
+            onMarkRead = notificationsViewModel::markRead,
+            onMarkAllRead = notificationsViewModel::markAllRead,
+            onDismiss = { showNotifications = false }
         )
     }
 
@@ -203,6 +232,11 @@ fun ZocoApp(
                         screens = visibleScreens,
                         current = currentScreen,
                         cartItemCount = cartState.items.size,
+                        unreadNotifications = notificationsState.unreadCount,
+                        onOpenNotifications = {
+                            notificationsViewModel.refresh()
+                            showNotifications = true
+                        },
                         onSelect = { navigateToTab(navController, it, currentRoute) }
                     )
                     when (navigationStyleFor(windowSize)) {
@@ -244,6 +278,8 @@ private class MenuState(
     val screens: List<Screen>,
     val current: Screen,
     val cartItemCount: Int,
+    val unreadNotifications: Int,
+    val onOpenNotifications: () -> Unit,
     val onSelect: (Screen) -> Unit
 )
 
@@ -256,7 +292,7 @@ private fun BottomBarLayout(
 ) {
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
-        topBar = { ZocoTopBar(title = stringResource(R.string.app_name)) },
+        topBar = { ZocoTopBar(stringResource(R.string.app_name), menu.unreadNotifications, menu.onOpenNotifications) },
         bottomBar = {
             NavigationBar {
                 menu.screens.forEach { screen ->
@@ -294,7 +330,11 @@ private fun SideRailLayout(
         Scaffold(
             snackbarHost = { SnackbarHost(snackbarHostState) },
             topBar = {
-                ZocoTopBar(title = stringResource(R.string.app_name) + " - " + stringResource(currentScreen.titleResId))
+                ZocoTopBar(
+                    title = stringResource(R.string.app_name) + " - " + stringResource(currentScreen.titleResId),
+                    unreadNotifications = menu.unreadNotifications,
+                    onOpenNotifications = menu.onOpenNotifications
+                )
             }
         ) { innerPadding -> content(Modifier.padding(innerPadding)) }
     }
@@ -326,7 +366,7 @@ private fun SideDrawerLayout(
     ) {
         Scaffold(
             snackbarHost = { SnackbarHost(snackbarHostState) },
-            topBar = { ZocoTopBar(title = stringResource(menu.current.titleResId)) }
+            topBar = { ZocoTopBar(stringResource(menu.current.titleResId), menu.unreadNotifications, menu.onOpenNotifications) }
         ) { innerPadding -> content(Modifier.padding(innerPadding)) }
     }
 }
@@ -366,9 +406,19 @@ private val DRAWER_WIDTH = 280.dp
 /** Barra superior con el color principal de la app. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun ZocoTopBar(title: String) {
+private fun ZocoTopBar(title: String, unreadNotifications: Int = -1, onOpenNotifications: () -> Unit = {}) {
     TopAppBar(
         title = { Text(title, fontWeight = FontWeight.Bold) },
+        actions = {
+            // La campana solo aparece con sesión iniciada (unreadNotifications >= 0)
+            if (unreadNotifications >= 0) {
+                IconButton(onClick = onOpenNotifications) {
+                    BadgedBox(badge = { if (unreadNotifications > 0) Badge { Text(unreadNotifications.toString()) } }) {
+                        Icon(Icons.Default.Notifications, contentDescription = stringResource(R.string.notifications_title))
+                    }
+                }
+            }
+        },
         colors = TopAppBarDefaults.topAppBarColors(
             containerColor = MaterialTheme.colorScheme.primaryContainer,
             titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer

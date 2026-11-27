@@ -1,5 +1,7 @@
 package com.example.zoco
 
+import com.example.zoco.data.remote.dto.TokenResponseDto
+import com.example.zoco.data.remote.dto.ChangePasswordRequestDto
 import com.example.zoco.data.local.SessionManager
 import com.example.zoco.data.remote.api.AuthApiService
 import com.example.zoco.data.remote.dto.AuthResponseDto
@@ -56,6 +58,9 @@ class RolesAndPermissionsTest {
                 message = "ok"
             )
         }
+
+        override suspend fun changePassword(request: ChangePasswordRequestDto): TokenResponseDto =
+            TokenResponseDto(token = "token_new")
 
         var lastRegisterRole: String? = null
 

@@ -47,8 +47,13 @@ class CartViewModel(
     init {
         authRepository?.let { auth ->
             viewModelScope.launch {
+                var lastUserId: Long? = null
                 auth.sessionFlow.collect { session ->
-                    _uiState.update { current ->
+                    // Otra cuenta (o cerrar sesión) = carrito nuevo, sin productos ni mensajes de la cuenta anterior
+                    val accountChanged = lastUserId != null && lastUserId != session.userId
+                    lastUserId = session.userId
+                    _uiState.update { base ->
+                        val current = if (accountChanged) CartUiState() else base
                         current.copy(
                             customerName = session.fullName.ifBlank { session.username },
                             customerPhone = session.phone.ifBlank { current.customerPhone },

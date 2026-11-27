@@ -1,5 +1,7 @@
 package com.example.zoco.ui.common
 
+import com.example.zoco.ui.notifications.NotificationsViewModel
+import com.example.zoco.domain.repository.NotificationRepository
 import android.content.SharedPreferences
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -29,7 +31,8 @@ class ViewModelFactory(
     private val networkConnectivityChecker: NetworkConnectivityChecker? = null,
     private val sharedPreferences: SharedPreferences? = null,
     private val authRepository: AuthRepository? = null,
-    private val findServer: (suspend () -> Boolean)? = null
+    private val findServer: (suspend () -> Boolean)? = null,
+    private val notificationRepository: NotificationRepository? = null
 ) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
@@ -44,7 +47,7 @@ class ViewModelFactory(
                 CartViewModel(orderRepository, authRepository) as T
             }
             modelClass.isAssignableFrom(ProfileViewModel::class.java) -> {
-                ProfileViewModel(userProfileRepository, sharedPreferences, authRepository) as T
+                ProfileViewModel(userProfileRepository, sharedPreferences, authRepository, orderRepository) as T
             }
             modelClass.isAssignableFrom(AuthViewModel::class.java) -> {
                 val auth = authRepository
@@ -55,6 +58,9 @@ class ViewModelFactory(
                 val auth = authRepository
                     ?: throw IllegalStateException("AuthRepository requerido para AdminViewModel")
                 AdminViewModel(auth, productRepository, orderRepository) as T
+            }
+            modelClass.isAssignableFrom(NotificationsViewModel::class.java) -> {
+                NotificationsViewModel(notificationRepository) as T
             }
             else -> throw IllegalArgumentException("ViewModel desconocido: ${modelClass.name}")
         }

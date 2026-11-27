@@ -27,6 +27,9 @@ interface AuthRepository {
     suspend fun becomeSeller(producerName: String? = null): Result<UserSession>
     suspend fun logout()
 
+    /** Cambia la contraseña de la cuenta. Pide la actual; el servidor entrega una llave (token) nueva. */
+    suspend fun changePassword(currentPassword: String, newPassword: String): Result<Unit>
+
     /** Cambia la foto de perfil: se muestra al instante y se sube al servidor. */
     suspend fun updateAvatar(photoUri: String): Result<UserSession>
     suspend fun refreshUsers(): Boolean

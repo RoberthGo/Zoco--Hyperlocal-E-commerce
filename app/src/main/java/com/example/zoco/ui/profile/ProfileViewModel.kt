@@ -1,5 +1,6 @@
 package com.example.zoco.ui.profile
 
+import com.example.zoco.domain.repository.OrderRepository
 import android.content.SharedPreferences
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -21,7 +22,8 @@ data class ProfileUiState(
     val selectedLanguage: String = "es",
     val currentSession: UserSession = UserSession.LOGGED_OUT,
     val isAuthLoading: Boolean = false,
-    val authMessage: String? = null
+    val authMessage: String? = null,
+    val passwordChanged: Boolean = false
 )
 
 /**
@@ -31,7 +33,8 @@ data class ProfileUiState(
 class ProfileViewModel(
     private val userProfileRepository: UserProfileRepository? = null,
     private val sharedPreferences: SharedPreferences? = null,
-    private val authRepository: AuthRepository? = null
+    private val authRepository: AuthRepository? = null,
+    private val orderRepository: OrderRepository? = null
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(
@@ -96,9 +99,33 @@ class ProfileViewModel(
         }
     }
 
+    fun changePassword(currentPassword: String, newPassword: String) {
+        val repo = authRepository ?: return
+        viewModelScope.launch {
+            _uiState.update { it.copy(isAuthLoading = true, authMessage = null) }
+            val result = repo.changePassword(currentPassword, newPassword)
+            _uiState.update {
+                it.copy(
+                    isAuthLoading = false,
+                    passwordChanged = result.isSuccess,
+                    authMessage = if (result.isSuccess) "Contraseña actualizada." else result.exceptionOrNull()?.message
+                )
+            }
+        }
+    }
+
+    fun clearPasswordChanged() {
+        _uiState.update { it.copy(passwordChanged = false) }
+    }
+
     fun logout() {
         val repo = authRepository ?: return
         viewModelScope.launch {
+            // Antes de salir, intenta subir lo pendiente y borra los pedidos locales de esta cuenta
+            orderRepository?.let {
+                it.pushPending()
+                it.clearLocalOrders()
+            }
             repo.logout()
             _uiState.update { it.copy(authMessage = null) }
         }

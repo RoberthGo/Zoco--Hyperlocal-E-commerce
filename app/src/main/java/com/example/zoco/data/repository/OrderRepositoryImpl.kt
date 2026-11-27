@@ -178,6 +178,10 @@ class OrderRepositoryImpl(
         }
     }
 
+    override suspend fun clearLocalOrders() {
+        orderDao.clearAll()
+    }
+
     override suspend fun removeSampleOrders() {
         orderDao.deleteOldSampleOrders()
     }

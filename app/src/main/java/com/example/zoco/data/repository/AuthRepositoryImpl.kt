@@ -1,5 +1,6 @@
 package com.example.zoco.data.repository
 
+import com.example.zoco.data.remote.dto.ChangePasswordRequestDto
 import android.util.Log
 import com.example.zoco.data.local.ImageStore
 import com.example.zoco.data.local.SessionManager
@@ -143,6 +144,20 @@ class AuthRepositoryImpl(
             Log.w(TAG, "Logout remoto fallido (se cierra la sesión local): ${e.message}")
         } finally {
             sessionManager.clearSession()
+        }
+    }
+
+    override suspend fun changePassword(currentPassword: String, newPassword: String): Result<Unit> {
+        val current = sessionManager.sessionFlow.value
+        if (!current.isLoggedIn) return Result.failure(Exception("Inicia sesión primero."))
+        return try {
+            val response = authApiService.changePassword(ChangePasswordRequestDto(currentPassword, newPassword))
+            // El servidor invalida la llave anterior: se guarda la nueva para seguir con la sesión abierta
+            sessionManager.saveSession(current.copy(token = response.token))
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.w(TAG, "Cambio de contraseña fallido: ${e.message}")
+            Result.failure(Exception(friendlyMessage(e, "No se pudo cambiar la contraseña.")))
         }
     }
 

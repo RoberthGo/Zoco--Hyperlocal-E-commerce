@@ -1,5 +1,7 @@
 package com.example.zoco.data.remote.api
 
+import com.example.zoco.data.remote.dto.TokenResponseDto
+import com.example.zoco.data.remote.dto.ChangePasswordRequestDto
 import com.example.zoco.data.remote.dto.AuthResponseDto
 import com.example.zoco.data.remote.dto.AvatarResponseDto
 import com.example.zoco.data.remote.dto.BecomeSellerRequestDto
@@ -27,6 +29,9 @@ interface AuthApiService {
 
     @POST("auth/logout/")
     suspend fun logout(): Response<Unit>
+
+    @POST("auth/change-password/")
+    suspend fun changePassword(@Body request: ChangePasswordRequestDto): TokenResponseDto
 
     @Multipart
     @POST("auth/me/avatar/")

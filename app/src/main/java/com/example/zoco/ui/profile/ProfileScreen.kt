@@ -1,5 +1,6 @@
 package com.example.zoco.ui.profile
 
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import android.Manifest
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
@@ -81,6 +82,8 @@ fun ProfileScreen(
     onLanguageChange: (String) -> Unit = {},
     onBecomeSeller: (String?) -> Unit = {},
     onLogout: () -> Unit = {},
+    onChangePassword: (current: String, new: String) -> Unit = { _, _ -> },
+    onPasswordDialogClosed: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     // Tarjetas de la cuenta (foto, vendedor, cerrar sesión) y tarjetas de ajustes (idioma, equipo)
@@ -89,6 +92,12 @@ fun ProfileScreen(
         if (uiState.currentSession.role == UserRole.BUYER) {
             BecomeSellerCard(onBecomeSeller)
         }
+        ChangePasswordCard(
+            isBusy = uiState.isAuthLoading,
+            passwordChanged = uiState.passwordChanged,
+            onChangePassword = onChangePassword,
+            onDialogClosed = onPasswordDialogClosed
+        )
         LogoutCard(isBusy = uiState.isAuthLoading, onLogout = onLogout)
     }
     val settingsCards = @Composable {
@@ -480,6 +489,96 @@ private fun BecomeSellerDialog(
                 Text(stringResource(R.string.dialog_cancel))
             }
         }
+    )
+}
+
+// ---------------------------------------------------------------------------------------------
+// 3a. Cambiar contraseña
+// ---------------------------------------------------------------------------------------------
+
+@Composable
+private fun ChangePasswordCard(
+    isBusy: Boolean,
+    passwordChanged: Boolean,
+    onChangePassword: (String, String) -> Unit,
+    onDialogClosed: () -> Unit
+) {
+    var showDialog by remember { mutableStateOf(false) }
+    // Cuando el servidor acepta el cambio, la ventana se cierra sola
+    if (passwordChanged && showDialog) {
+        showDialog = false
+        onDialogClosed()
+    }
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+    ) {
+        Column(modifier = Modifier.padding(14.dp)) {
+            OutlinedButton(onClick = { showDialog = true }, enabled = !isBusy, modifier = Modifier.fillMaxWidth()) {
+                Text(stringResource(R.string.btn_change_password))
+            }
+        }
+    }
+
+    if (showDialog) {
+        ChangePasswordDialog(
+            isBusy = isBusy,
+            onConfirm = onChangePassword,
+            onDismiss = { showDialog = false }
+        )
+    }
+}
+
+@Composable
+private fun ChangePasswordDialog(
+    isBusy: Boolean,
+    onConfirm: (String, String) -> Unit,
+    onDismiss: () -> Unit
+) {
+    var current by remember { mutableStateOf("") }
+    var new by remember { mutableStateOf("") }
+    var repeat by remember { mutableStateOf("") }
+    val tooShort = new.isNotEmpty() && new.length < 6
+    val mismatch = repeat.isNotEmpty() && repeat != new
+    val canSave = current.isNotBlank() && new.length >= 6 && new == repeat && !isBusy
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.btn_change_password)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                PasswordInput(current, { current = it }, stringResource(R.string.password_current))
+                PasswordInput(new, { new = it }, stringResource(R.string.password_new), isError = tooShort)
+                PasswordInput(repeat, { repeat = it }, stringResource(R.string.auth_confirm_password_label), isError = mismatch)
+                if (tooShort) {
+                    Text(stringResource(R.string.auth_error_password_short), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+                } else if (mismatch) {
+                    Text(stringResource(R.string.auth_error_password_mismatch), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = { onConfirm(current, new) }, enabled = canSave) {
+                Text(stringResource(R.string.dialog_save))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.dialog_cancel)) }
+        }
+    )
+}
+
+@Composable
+private fun PasswordInput(value: String, onValueChange: (String) -> Unit, label: String, isError: Boolean = false) {
+    OutlinedTextField(
+        value = value,
+        onValueChange = onValueChange,
+        label = { Text(label) },
+        singleLine = true,
+        isError = isError,
+        visualTransformation = PasswordVisualTransformation(),
+        modifier = Modifier.fillMaxWidth()
     )
 }
 

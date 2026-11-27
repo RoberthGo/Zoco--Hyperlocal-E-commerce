@@ -104,7 +104,9 @@ fun ZocoNavHost(
                 onUpdateName = profileViewModel::updateName,
                 onLanguageChange = profileViewModel::setLanguage,
                 onBecomeSeller = profileViewModel::becomeSeller,
-                onLogout = profileViewModel::logout
+                onLogout = profileViewModel::logout,
+                onChangePassword = profileViewModel::changePassword,
+                onPasswordDialogClosed = profileViewModel::clearPasswordChanged
             )
         }
     }

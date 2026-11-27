@@ -1,5 +1,7 @@
 package com.example.zoco
 
+import com.example.zoco.domain.repository.NotificationRepository
+import com.example.zoco.data.repository.NotificationRepositoryImpl
 import android.app.Application
 import android.content.Context
 import com.example.zoco.data.local.ImageStore
@@ -68,6 +70,8 @@ class ZocoApplication : Application() {
             syncScheduler = syncScheduler
         )
     }
+
+    val notificationRepository: NotificationRepository by lazy { NotificationRepositoryImpl() }
 
     val userProfileRepository: UserProfileRepository by lazy {
         UserProfileRepositoryImpl(
