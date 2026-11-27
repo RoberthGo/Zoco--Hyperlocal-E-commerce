@@ -50,7 +50,7 @@ fun ZocoNavHost(
                 onCategoryChange = catalogViewModel::onCategorySelected,
                 onExpressFilterChange = catalogViewModel::onExpressFilterToggled,
                 onAddToCart = { product, quantity -> cartViewModel.addProduct(product, quantity) },
-                onSyncWeb = catalogViewModel::syncFromWeb,
+                onSyncWeb = catalogViewModel::refreshFromServer,
                 onDeleteProduct = catalogViewModel::deleteProduct,
                 snackbarHostState = snackbarHostState
             )
@@ -66,7 +66,7 @@ fun ZocoNavHost(
                 onAddressChange = cartViewModel::onDeliveryAddressChanged,
                 onExpressChange = cartViewModel::onExpressChanged,
                 onConfirmOrder = cartViewModel::confirmOrder,
-                onSyncOrders = cartViewModel::syncOrdersFromWeb
+                onSyncOrders = cartViewModel::refreshOrdersFromServer
             )
         }
 

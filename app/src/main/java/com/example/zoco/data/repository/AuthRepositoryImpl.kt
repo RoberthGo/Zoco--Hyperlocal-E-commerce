@@ -1,5 +1,9 @@
 package com.example.zoco.data.repository
 
+import androidx.annotation.StringRes
+import com.example.zoco.domain.model.UserFacingException
+import com.example.zoco.domain.model.UiMessage
+import com.example.zoco.R
 import com.example.zoco.data.remote.dto.ChangePasswordRequestDto
 import android.util.Log
 import com.example.zoco.data.local.ImageStore
@@ -50,7 +54,7 @@ class AuthRepositoryImpl(
             Result.success(session)
         } catch (e: Exception) {
             Log.w(TAG, "Login fallido: ${e.message}")
-            Result.failure(Exception(friendlyMessage(e, "Credenciales incorrectas.")))
+            Result.failure(friendlyError(e, R.string.err_bad_credentials))
         }
     }
 
@@ -78,17 +82,17 @@ class AuthRepositoryImpl(
             Result.success(session)
         } catch (e: Exception) {
             Log.w(TAG, "Registro fallido: ${e.message}")
-            Result.failure(Exception(friendlyMessage(e, "No se pudo crear la cuenta.")))
+            Result.failure(friendlyError(e, R.string.err_register_failed))
         }
     }
 
     override suspend fun becomeSeller(producerName: String?): Result<UserSession> {
         val current = sessionManager.sessionFlow.value
         if (!current.isLoggedIn) {
-            return Result.failure(Exception("Inicia sesión primero."))
+            return Result.failure(UserFacingException(UiMessage.of(R.string.err_login_required)))
         }
         if (current.role != UserRole.BUYER) {
-            return Result.failure(Exception("Solo los compradores pueden convertirse en vendedor."))
+            return Result.failure(UserFacingException(UiMessage.of(R.string.err_buyers_only)))
         }
         val businessName = producerName?.trim()?.takeIf { it.isNotBlank() }
             ?: current.producerName.ifBlank { current.fullName }
@@ -103,13 +107,13 @@ class AuthRepositoryImpl(
             Result.success(updated)
         } catch (e: Exception) {
             Log.w(TAG, "becomeSeller fallido: ${e.message}")
-            Result.failure(Exception(friendlyMessage(e, "No se pudo actualizar el rol.")))
+            Result.failure(friendlyError(e, R.string.msg_role_update_failed))
         }
     }
 
     override suspend fun updateAvatar(photoUri: String): Result<UserSession> {
         val current = sessionManager.sessionFlow.value
-        if (!current.isLoggedIn) return Result.failure(Exception("Inicia sesión primero."))
+        if (!current.isLoggedIn) return Result.failure(UserFacingException(UiMessage.of(R.string.err_login_required)))
 
         // 1. Mostrar la foto de inmediato con una copia local reducida
         val localUri = imageStore?.saveLocalCopy(photoUri) ?: photoUri
@@ -117,7 +121,7 @@ class AuthRepositoryImpl(
 
         // 2. Subirla al servidor para que quede en la cuenta (y se vea en otros dispositivos)
         val bytes = imageStore?.readBytes(localUri)
-            ?: return Result.failure(Exception("No se pudo leer la foto seleccionada."))
+            ?: return Result.failure(UserFacingException(UiMessage.of(R.string.err_photo_unreadable)))
         return try {
             val part = MultipartBody.Part.createFormData(
                 "image", "avatar.jpg", bytes.toRequestBody("image/jpeg".toMediaType())
@@ -131,7 +135,7 @@ class AuthRepositoryImpl(
             Result.success(updated)
         } catch (e: Exception) {
             Log.w(TAG, "No se pudo subir la foto de perfil: ${e.message}")
-            Result.failure(Exception(friendlyMessage(e, "No se pudo subir la foto.")))
+            Result.failure(friendlyError(e, R.string.err_photo_upload_failed))
         }
     }
 
@@ -149,7 +153,7 @@ class AuthRepositoryImpl(
 
     override suspend fun changePassword(currentPassword: String, newPassword: String): Result<Unit> {
         val current = sessionManager.sessionFlow.value
-        if (!current.isLoggedIn) return Result.failure(Exception("Inicia sesión primero."))
+        if (!current.isLoggedIn) return Result.failure(UserFacingException(UiMessage.of(R.string.err_login_required)))
         return try {
             val response = authApiService.changePassword(ChangePasswordRequestDto(currentPassword, newPassword))
             // El servidor invalida la llave anterior: se guarda la nueva para seguir con la sesión abierta
@@ -157,7 +161,7 @@ class AuthRepositoryImpl(
             Result.success(Unit)
         } catch (e: Exception) {
             Log.w(TAG, "Cambio de contraseña fallido: ${e.message}")
-            Result.failure(Exception(friendlyMessage(e, "No se pudo cambiar la contraseña.")))
+            Result.failure(friendlyError(e, R.string.err_password_change_failed))
         }
     }
 
@@ -198,12 +202,14 @@ class AuthRepositoryImpl(
         )
     }
 
-    private fun friendlyMessage(e: Exception, fallback: String): String {
-        return when (e) {
-            is HttpException -> serverMessage(e) ?: fallback
-            is IOException -> "No se pudo conectar con el servidor."
-            else -> fallback
+    /** El error que verá la persona: lo que explica el servidor, "sin conexión" o el texto [fallbackRes]. */
+    private fun friendlyError(e: Exception, @StringRes fallbackRes: Int): Exception {
+        val message = when (e) {
+            is HttpException -> serverMessage(e)?.let { UiMessage.raw(it) } ?: UiMessage.of(fallbackRes)
+            is IOException -> UiMessage.of(R.string.err_no_connection)
+            else -> UiMessage.of(fallbackRes)
         }
+        return UserFacingException(message)
     }
 
     /** Extrae el primer mensaje de un cuerpo de error DRF (`{"campo": ["msg"]}` o `{"detail": ["msg"]}`). */

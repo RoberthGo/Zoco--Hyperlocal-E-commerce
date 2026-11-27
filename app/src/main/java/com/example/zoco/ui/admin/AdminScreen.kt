@@ -1,5 +1,6 @@
 package com.example.zoco.ui.admin
 
+import com.example.zoco.ui.common.asString
 import com.example.zoco.ui.common.formatPrice
 import com.example.zoco.ui.common.formatAmount
 import com.example.zoco.ui.common.orderStatusLabel
@@ -77,7 +78,7 @@ fun AdminScreen(
 
     Column(modifier = modifier.fillMaxSize().padding(horizontal = 16.dp, vertical = 10.dp)) {
         AdminHeader(isRefreshing = uiState.isRefreshing, onRefresh = onRefresh)
-        uiState.statusMessage?.let { StatusMessage(it) }
+        uiState.statusMessage?.let { StatusMessage(it.asString()) }
         Spacer(modifier = Modifier.height(8.dp))
 
         if (LocalWindowSize.current.isExpanded) {

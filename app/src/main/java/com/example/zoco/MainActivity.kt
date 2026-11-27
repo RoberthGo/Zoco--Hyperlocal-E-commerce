@@ -171,8 +171,8 @@ fun ZocoApp(
     LaunchedEffect(session.username, session.role) {
         if (!isLoggedIn) return@LaunchedEffect
         notificationsViewModel.refresh()
-        catalogViewModel.syncFromWeb()
-        cartViewModel.syncOrdersFromWeb()
+        catalogViewModel.refreshFromServer()
+        cartViewModel.refreshOrdersFromServer()
         if (session.role == UserRole.ADMIN) {
             adminViewModel.refreshAll()
         }

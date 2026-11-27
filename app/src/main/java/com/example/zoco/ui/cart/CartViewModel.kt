@@ -1,5 +1,7 @@
 package com.example.zoco.ui.cart
 
+import com.example.zoco.R
+import com.example.zoco.domain.model.UiMessage
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.zoco.domain.model.CartItem
@@ -21,9 +23,9 @@ data class CartUiState(
     val customerPhone: String = "",
     val deliveryAddress: String = "",
     val isExpress: Boolean = false,
-    val orderCompletedMessage: String? = null,
+    val orderCompletedMessage: UiMessage? = null,
     val isSubmitting: Boolean = false,
-    val isApiActive: Boolean = false,
+    val isServerReachable: Boolean = false,
     val recentOrders: List<Order> = emptyList()
 ) {
     val totalAmount: Double
@@ -42,7 +44,7 @@ class CartViewModel(
 
     private val _uiState = MutableStateFlow(CartUiState())
     val uiState: StateFlow<CartUiState> = _uiState.asStateFlow()
-    private val _isApiActive = MutableStateFlow(false)
+    private val _isServerReachable = MutableStateFlow(false)
 
     init {
         authRepository?.let { auth ->
@@ -66,13 +68,13 @@ class CartViewModel(
         orderRepository?.let { repo ->
             viewModelScope.launch {
                 repo.removeSampleOrders()
-                val success = repo.syncOrdersFromRemote()
-                _isApiActive.value = success
+                val success = repo.refreshOrders()
+                _isServerReachable.value = success
             }
             viewModelScope.launch {
-                combine(repo.getOrders(), _isApiActive) { orders, isApiActive ->
+                combine(repo.getOrders(), _isServerReachable) { orders, isServerReachable ->
                     // Si el servidor no responde, no se muestran los pedidos que vinieron de él (solo los locales)
-                    if (isApiActive) {
+                    if (isServerReachable) {
                         orders
                     } else {
                         orders.filterNot { 
@@ -80,18 +82,18 @@ class CartViewModel(
                         }
                     }
                 }.collect { visibleOrders ->
-                    _uiState.update { it.copy(recentOrders = visibleOrders, isApiActive = _isApiActive.value) }
+                    _uiState.update { it.copy(recentOrders = visibleOrders, isServerReachable = _isServerReachable.value) }
                 }
             }
         }
     }
 
-    fun syncOrdersFromWeb() {
+    fun refreshOrdersFromServer() {
         orderRepository?.let { repo ->
             viewModelScope.launch {
-                val success = repo.syncOrdersFromRemote()
-                _isApiActive.value = success
-                _uiState.update { it.copy(isApiActive = success) }
+                val success = repo.refreshOrders()
+                _isServerReachable.value = success
+                _uiState.update { it.copy(isServerReachable = success) }
             }
         }
     }
@@ -163,7 +165,7 @@ class CartViewModel(
                 it.copy(
                     items = emptyList(),
                     isSubmitting = false,
-                    orderCompletedMessage = "¡Pedido #${if (orderId > 0) orderId else "1"} registrado con éxito! Programado para las ${state.scheduledDeliveryTime}."
+                    orderCompletedMessage = UiMessage.of(R.string.msg_order_placed, if (orderId > 0) orderId else 1L, state.scheduledDeliveryTime)
                 )
             }
         }

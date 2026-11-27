@@ -266,7 +266,7 @@ class ProductRepositoryImpl(
      * Se detiene al primer error de red (no tiene caso esperar N timeouts); un error HTTP de un
      * producto no bloquea a los demás. Devuelve true solo si no quedó nada pendiente.
      */
-    override suspend fun pushPending(): Boolean {
+    override suspend fun uploadPending(): Boolean {
         var allPushed = true
         for (entity in productDao.getPendingProducts().sortedBy { it.id }) {
             try {
@@ -322,7 +322,7 @@ class ProductRepositoryImpl(
      * para asegurar que no se muestren cosas de la API.
      * Incluye detección y fallback automático entre IPs candidatas (Wi-Fi, Localhost, Emulador).
      */
-    override suspend fun syncProductsFromRemote(): Boolean {
+    override suspend fun refreshProducts(): Boolean {
         // 1. Probar con la URL actualmente configurada
         if (downloadProducts()) {
             return true
@@ -363,7 +363,7 @@ class ProductRepositoryImpl(
                 Log.d(TAG, "Sincronización remota completada: ${entities.size} productos descargados desde ${RetrofitClient.currentBaseUrl}")
             }
             // El servidor respondió: aprovechar la conexión para subir lo que quedó pendiente offline
-            pushPending()
+            uploadPending()
             remoteProducts.isNotEmpty()
         } catch (e: Exception) {
             false

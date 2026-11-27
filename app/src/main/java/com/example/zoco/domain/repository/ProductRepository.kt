@@ -6,8 +6,8 @@ import kotlinx.coroutines.flow.Flow
 
 /**
  * Productos del catálogo. La pantalla siempre lee de la base local (rápida y funciona sin internet);
- * el repositorio se encarga de descargar del servidor ([syncProductsFromRemote]) y de subir lo que
- * se creó sin conexión ([pushPending]).
+ * el repositorio se encarga de descargar del servidor ([refreshProducts]) y de subir lo que
+ * se creó sin conexión ([uploadPending]).
  */
 interface ProductRepository {
     fun getProducts(): Flow<List<Product>>
@@ -19,9 +19,9 @@ interface ProductRepository {
     suspend fun updateProduct(product: Product): Boolean
     suspend fun deleteProduct(product: Product): Boolean
     suspend fun deleteProductById(id: Long): Boolean
-    suspend fun syncProductsFromRemote(): Boolean
+    suspend fun refreshProducts(): Boolean
 
     /** Sube a la Web API los productos creados/editados sin conexión. true si no quedó ninguno pendiente. */
-    suspend fun pushPending(): Boolean
+    suspend fun uploadPending(): Boolean
     suspend fun populateInitialDataIfEmpty()
 }

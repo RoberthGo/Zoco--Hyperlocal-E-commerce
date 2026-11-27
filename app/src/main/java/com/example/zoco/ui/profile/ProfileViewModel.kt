@@ -1,5 +1,8 @@
 package com.example.zoco.ui.profile
 
+import com.example.zoco.domain.model.toUiMessage
+import com.example.zoco.R
+import com.example.zoco.domain.model.UiMessage
 import com.example.zoco.domain.repository.OrderRepository
 import android.content.SharedPreferences
 import androidx.lifecycle.ViewModel
@@ -22,7 +25,7 @@ data class ProfileUiState(
     val selectedLanguage: String = "es",
     val currentSession: UserSession = UserSession.LOGGED_OUT,
     val isAuthLoading: Boolean = false,
-    val authMessage: String? = null,
+    val authMessage: UiMessage? = null,
     val passwordChanged: Boolean = false
 )
 
@@ -90,9 +93,9 @@ class ProfileViewModel(
                 it.copy(
                     isAuthLoading = false,
                     authMessage = if (result.isSuccess) {
-                        "¡Ahora eres Vendedor! Pestaña Vender habilitada."
+                        UiMessage.of(R.string.msg_now_seller)
                     } else {
-                        result.exceptionOrNull()?.message ?: "No se pudo actualizar el rol."
+                        result.exceptionOrNull().toUiMessage(UiMessage.of(R.string.msg_role_update_failed))
                     }
                 )
             }
@@ -108,7 +111,8 @@ class ProfileViewModel(
                 it.copy(
                     isAuthLoading = false,
                     passwordChanged = result.isSuccess,
-                    authMessage = if (result.isSuccess) "Contraseña actualizada." else result.exceptionOrNull()?.message
+                    authMessage = if (result.isSuccess) UiMessage.of(R.string.msg_password_changed)
+                    else result.exceptionOrNull().toUiMessage(UiMessage.of(R.string.err_password_change_failed))
                 )
             }
         }
@@ -123,7 +127,7 @@ class ProfileViewModel(
         viewModelScope.launch {
             // Antes de salir, intenta subir lo pendiente y borra los pedidos locales de esta cuenta
             orderRepository?.let {
-                it.pushPending()
+                it.uploadPending()
                 it.clearLocalOrders()
             }
             repo.logout()
@@ -154,7 +158,7 @@ class ProfileViewModel(
             _uiState.update {
                 it.copy(
                     authMessage = if (result.isSuccess) null
-                    else "La foto se guardó en tu dispositivo, pero no se pudo subir. Inténtalo de nuevo con conexión."
+                    else UiMessage.of(R.string.msg_photo_saved_not_uploaded)
                 )
             }
         }

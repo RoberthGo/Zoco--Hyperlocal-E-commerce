@@ -129,7 +129,7 @@ class OrderRepositoryImpl(
      * Vacía la cola de pedidos pendientes. Se detiene al primer error de red.
      * Devuelve true solo si no quedó ningún pedido pendiente.
      */
-    override suspend fun pushPending(): Boolean {
+    override suspend fun uploadPending(): Boolean {
         var allPushed = true
         for (entity in orderDao.getPendingOrders().sortedBy { it.id }) {
             try {
@@ -145,7 +145,7 @@ class OrderRepositoryImpl(
         return allPushed
     }
 
-    override suspend fun syncOrdersFromRemote(): Boolean {
+    override suspend fun refreshOrders(): Boolean {
         return try {
             val remoteOrders = orderApiService.getOrders()
             if (remoteOrders.isNotEmpty()) {
@@ -169,7 +169,7 @@ class OrderRepositoryImpl(
                 Log.d(TAG, "Sincronización de pedidos exitosa: ${entities.size} pedidos.")
             }
             // El servidor respondió: aprovechar la conexión para subir pedidos hechos offline
-            pushPending()
+            uploadPending()
             remoteOrders.isNotEmpty()
         } catch (e: Exception) {
             Log.w(TAG, "Web API no activa (${e.message}). Eliminando pedidos remotos de Room para mostrar únicamente pedidos locales.")

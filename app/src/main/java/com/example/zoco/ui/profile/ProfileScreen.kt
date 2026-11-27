@@ -1,5 +1,6 @@
 package com.example.zoco.ui.profile
 
+import com.example.zoco.ui.common.asString
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import android.Manifest
 import android.content.pm.PackageManager
@@ -206,7 +207,7 @@ private fun ProfileHeaderCard(
             if (uiState.authMessage != null) {
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = uiState.authMessage,
+                    text = uiState.authMessage.asString(),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.SemiBold

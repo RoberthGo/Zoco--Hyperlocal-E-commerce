@@ -43,8 +43,8 @@ class SellerViewModelTest {
         override suspend fun updateProduct(product: Product): Boolean = true
         override suspend fun deleteProduct(product: Product): Boolean = true
         override suspend fun deleteProductById(id: Long): Boolean = true
-        override suspend fun syncProductsFromRemote(): Boolean = true
-        override suspend fun pushPending(): Boolean = true
+        override suspend fun refreshProducts(): Boolean = true
+        override suspend fun uploadPending(): Boolean = true
         override suspend fun populateInitialDataIfEmpty() {}
     }
 

@@ -1,5 +1,6 @@
 package com.example.zoco.ui.auth
 
+import com.example.zoco.ui.common.asString
 import android.util.Patterns
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -75,7 +76,7 @@ fun AuthScreen(
     val errorEmail = stringResource(R.string.auth_error_email_invalid)
 
     val isRegister = tabIndex == 1
-    val shownError = localError ?: uiState.errorMessage
+    val shownError = localError ?: uiState.errorMessage?.asString()
 
     fun submit() {
         localError = null

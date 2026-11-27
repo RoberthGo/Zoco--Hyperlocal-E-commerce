@@ -1,5 +1,6 @@
 package com.example.zoco.ui.catalog
 
+import com.example.zoco.ui.common.asString
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -151,7 +152,7 @@ private fun ProductListPane(
             isRefreshing = uiState.isSyncing,
             onRefresh = onSyncWeb
         )
-        uiState.syncMessage?.let { StatusBanner(it) }
+        uiState.statusMessage?.let { StatusBanner(it.asString()) }
         Spacer(modifier = Modifier.height(8.dp))
         CategoryFilters(
             selected = uiState.selectedCategory,

@@ -82,7 +82,9 @@ Ejemplo: tocar "Cerrar sesión" en `ProfileScreen` llama a `onLogout` → `Profi
 ### Idioma
 - Se elige en Perfil. `LanguageProvider` (en `MainActivity.kt`) hace que toda la app cambie al instante.
 - Los textos están en `app/src/main/res/values/strings.xml` (español) y `values-en/strings.xml` (inglés).
-  Nota: algunos mensajes de los ViewModels aún están escritos directamente en español.
+  Los mensajes que arman los ViewModels y repositorios no llevan texto: usan `UiMessage.of(R.string.msg_...)`
+  (archivo `domain/model/UiMessage.kt`) y la pantalla los traduce con `.asString()`. Así cambian con el idioma elegido.
+  Para agregar un mensaje: escribe el texto en `values/strings.xml` y `values-en/strings.xml` y usa `UiMessage.of(...)`.
 
 ## 5. "Quiero cambiar X, ¿dónde lo toco?"
 

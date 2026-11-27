@@ -1,5 +1,6 @@
 package com.example.zoco.ui.seller
 
+import com.example.zoco.ui.common.asString
 import com.example.zoco.ui.common.formatPrice
 import com.example.zoco.ui.common.orderStatusLabel
 import android.Manifest
@@ -119,7 +120,7 @@ fun SellerScreen(
     )
 
     Column(modifier = modifier.fillMaxSize()) {
-        uiState.actionMessage?.let { ActionMessageBanner(it) }
+        uiState.actionMessage?.let { ActionMessageBanner(it.asString()) }
         if (LocalWindowSize.current.isExpanded) {
             SellerDashboardLayout(uiState, actions)
         } else {

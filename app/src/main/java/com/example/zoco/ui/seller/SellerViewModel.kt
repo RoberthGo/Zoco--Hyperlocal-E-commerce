@@ -1,5 +1,8 @@
 package com.example.zoco.ui.seller
 
+import com.example.zoco.ui.common.orderStatusMessage
+import com.example.zoco.R
+import com.example.zoco.domain.model.UiMessage
 import com.example.zoco.ui.common.orderStatusText
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -31,7 +34,7 @@ data class SellerUiState(
     val myProducts: List<Product> = emptyList(),
     val receivedOrders: List<Order> = emptyList(),
     val currentSession: UserSession = UserSession.LOGGED_OUT,
-    val actionMessage: String? = null
+    val actionMessage: UiMessage? = null
 )
 
 /**
@@ -138,7 +141,7 @@ class SellerViewModel(
     fun deleteOwnProduct(product: Product) {
         val session = _uiState.value.currentSession
         if (!product.isOwnedBy(session)) {
-            _uiState.update { it.copy(actionMessage = "Solo puedes eliminar tus propios productos.") }
+            _uiState.update { it.copy(actionMessage = UiMessage.of(R.string.msg_seller_delete_only_own)) }
             return
         }
         viewModelScope.launch {
@@ -146,9 +149,9 @@ class SellerViewModel(
             _uiState.update {
                 it.copy(
                     actionMessage = if (deleted) {
-                        "Producto eliminado: ${product.name}"
+                        UiMessage.of(R.string.msg_product_deleted, product.name)
                     } else {
-                        "No se pudo eliminar \"${product.name}\". Revisa tu conexión."
+                        UiMessage.of(R.string.msg_product_delete_failed_connection, product.name)
                     }
                 )
             }
@@ -161,9 +164,9 @@ class SellerViewModel(
             _uiState.update {
                 it.copy(
                     actionMessage = if (updated) {
-                        "Pedido #$orderId actualizado: ${orderStatusText(newStatus)}"
+                        UiMessage.of(R.string.msg_order_updated, orderId, orderStatusMessage(newStatus))
                     } else {
-                        "No se pudo actualizar el pedido #$orderId"
+                        UiMessage.of(R.string.msg_order_update_failed, orderId)
                     }
                 )
             }

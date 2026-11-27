@@ -145,14 +145,14 @@ class ProductRepositoryImplTest {
     }
 
     @Test
-    fun pushPending_afterConnectionReturns_uploadsQueuedProduct() = runTest {
+    fun uploadPending_afterConnectionReturns_uploadsQueuedProduct() = runTest {
         api.failure = IOException("sin red")
         repo.insertProduct(newProduct())
-        assertFalse(repo.pushPending())                     // sigue sin red -> queda pendiente
+        assertFalse(repo.uploadPending())                     // sigue sin red -> queda pendiente
         assertEquals(1, dao.getPendingProducts().size)
 
         api.failure = null                                  // vuelve el internet
-        assertTrue(repo.pushPending())
+        assertTrue(repo.uploadPending())
 
         assertTrue(dao.getPendingProducts().isEmpty())
         assertTrue(dao.rows.values.single().isRemote)
@@ -176,7 +176,7 @@ class ProductRepositoryImplTest {
         assertEquals(1, scheduler.calls)
 
         api.failure = null
-        assertTrue(repo.pushPending())
+        assertTrue(repo.uploadPending())
         assertFalse(dao.rows[7L]!!.pendingSync)
         assertEquals(7L, api.updated.single().first)
         assertTrue(api.created.isEmpty())                   // era edición, no creación

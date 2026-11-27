@@ -1,5 +1,7 @@
 package com.example.zoco.ui.catalog
 
+import com.example.zoco.R
+import com.example.zoco.domain.model.UiMessage
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.zoco.data.remote.NetworkConnectivityChecker
@@ -28,9 +30,9 @@ data class CatalogUiState(
     val products: List<Product> = emptyList(),
     val isLoading: Boolean = false,
     val isSyncing: Boolean = false,
-    val isApiActive: Boolean = false,
+    val isServerReachable: Boolean = false,
     val isInternetAvailable: Boolean = true,
-    val syncMessage: String? = null,
+    val statusMessage: UiMessage? = null,
     val currentSession: UserSession = UserSession.LOGGED_OUT,
     val enforceRolePermissions: Boolean = false
 ) {
@@ -61,7 +63,7 @@ private data class CatalogFilters(
 /** Estado de la conexión con el servidor. */
 private data class ServerStatus(
     val isSyncing: Boolean,
-    val message: String?,
+    val message: UiMessage?,
     val isActive: Boolean
 )
 
@@ -80,11 +82,11 @@ class CatalogViewModel(
     private val _selectedCategory = MutableStateFlow(ProductCategory.ALL)
     private val _expressOnly = MutableStateFlow(false)
     private val _isSyncing = MutableStateFlow(false)
-    private val _isApiActive = MutableStateFlow(false)
-    private val _syncMessage = MutableStateFlow<String?>(null)
+    private val _isServerReachable = MutableStateFlow(false)
+    private val _statusMessage = MutableStateFlow<UiMessage?>(null)
 
     private val filters = combine(_searchQuery, _selectedCategory, _expressOnly, ::CatalogFilters)
-    private val serverStatus = combine(_isSyncing, _syncMessage, _isApiActive, ::ServerStatus)
+    private val serverStatus = combine(_isSyncing, _statusMessage, _isServerReachable, ::ServerStatus)
 
     val uiState: StateFlow<CatalogUiState> = combine(
         repository.getProducts(),
@@ -103,9 +105,9 @@ class CatalogViewModel(
             products = availableProducts.filter { matches(it, filters) },
             isLoading = false,
             isSyncing = server.isSyncing,
-            isApiActive = server.isActive,
+            isServerReachable = server.isActive,
             isInternetAvailable = isInternetAvailable,
-            syncMessage = server.message,
+            statusMessage = server.message,
             currentSession = session,
             enforceRolePermissions = authRepository != null
         )
@@ -132,12 +134,12 @@ class CatalogViewModel(
     init {
         viewModelScope.launch {
             repository.populateInitialDataIfEmpty()
-            val synced = repository.syncProductsFromRemote()
-            _isApiActive.value = synced
-            _syncMessage.value = if (synced) {
+            val synced = repository.refreshProducts()
+            _isServerReachable.value = synced
+            _statusMessage.value = if (synced) {
                 null
             } else {
-                "Sin conexión con el servidor. Mostrando los productos guardados en tu dispositivo."
+                UiMessage.of(R.string.msg_catalog_offline)
             }
         }
     }
@@ -154,17 +156,17 @@ class CatalogViewModel(
         _expressOnly.value = enabled
     }
 
-    fun syncFromWeb() {
+    fun refreshFromServer() {
         viewModelScope.launch {
             _isSyncing.value = true
-            _syncMessage.value = "Actualizando catálogo..."
-            val success = repository.syncProductsFromRemote()
-            _isApiActive.value = success
+            _statusMessage.value = UiMessage.of(R.string.msg_catalog_updating)
+            val success = repository.refreshProducts()
+            _isServerReachable.value = success
             _isSyncing.value = false
-            _syncMessage.value = if (success) {
-                "Catálogo actualizado."
+            _statusMessage.value = if (success) {
+                UiMessage.of(R.string.msg_catalog_updated)
             } else {
-                "No se pudo conectar con el servidor. Mostrando los productos guardados en tu dispositivo."
+                UiMessage.of(R.string.msg_catalog_offline)
             }
         }
     }
@@ -172,25 +174,25 @@ class CatalogViewModel(
     fun deleteProduct(product: Product) {
         val state = uiState.value
         if (!state.canDelete(product)) {
-            _syncMessage.value = "Solo puedes eliminar los productos que tú publicaste."
+            _statusMessage.value = UiMessage.of(R.string.msg_delete_only_own)
             return
         }
         if (networkChecker != null && !networkChecker.isInternetAvailable()) {
-            _syncMessage.value = "Sin conexión a internet. Conéctate para poder eliminar productos."
+            _statusMessage.value = UiMessage.of(R.string.msg_delete_needs_internet)
             return
         }
         viewModelScope.launch {
             val deleted = repository.deleteProduct(product)
-            _syncMessage.value = if (deleted) {
-                "Producto eliminado: ${product.name}"
+            _statusMessage.value = if (deleted) {
+                UiMessage.of(R.string.msg_product_deleted, product.name)
             } else {
-                "No se pudo eliminar \"${product.name}\". Revisa tu conexión o tus permisos."
+                UiMessage.of(R.string.msg_product_delete_failed_permissions, product.name)
             }
         }
     }
 
     fun clearSyncMessage() {
-        _syncMessage.value = null
+        _statusMessage.value = null
     }
 
     private companion object {

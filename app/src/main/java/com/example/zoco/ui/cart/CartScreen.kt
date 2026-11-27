@@ -1,5 +1,6 @@
 package com.example.zoco.ui.cart
 
+import com.example.zoco.ui.common.asString
 import com.example.zoco.ui.common.formatPrice
 import com.example.zoco.ui.common.formatAmount
 import com.example.zoco.ui.common.orderStatusLabel
@@ -130,7 +131,7 @@ private fun CartSingleColumnLayout(uiState: CartUiState, actions: CartActions) {
         CartTitle(stringResource(R.string.cart_title))
         Spacer(modifier = Modifier.height(10.dp))
         uiState.orderCompletedMessage?.let {
-            OrderCompletedBanner(it)
+            OrderCompletedBanner(it.asString())
             Spacer(modifier = Modifier.height(8.dp))
         }
 
@@ -185,7 +186,7 @@ private fun CartTwoColumnLayout(uiState: CartUiState, actions: CartActions) {
             CartTitle(stringResource(R.string.cart_title))
             Spacer(modifier = Modifier.height(10.dp))
             uiState.orderCompletedMessage?.let {
-                OrderCompletedBanner(it)
+                OrderCompletedBanner(it.asString())
                 Spacer(modifier = Modifier.height(8.dp))
             }
             if (uiState.items.isEmpty()) {

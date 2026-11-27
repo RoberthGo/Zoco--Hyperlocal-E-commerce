@@ -1,5 +1,9 @@
 package com.example.zoco.ui.admin
 
+import com.example.zoco.ui.common.orderStatusMessage
+import com.example.zoco.ui.common.roleMessage
+import com.example.zoco.R
+import com.example.zoco.domain.model.UiMessage
 import com.example.zoco.ui.common.roleText
 import com.example.zoco.ui.common.orderStatusText
 import androidx.lifecycle.ViewModel
@@ -23,7 +27,7 @@ data class AdminUiState(
     val orders: List<Order> = emptyList(),
     val products: List<Product> = emptyList(),
     val isRefreshing: Boolean = false,
-    val statusMessage: String? = null
+    val statusMessage: UiMessage? = null
 )
 
 /**
@@ -63,12 +67,12 @@ class AdminViewModel(
         viewModelScope.launch {
             _uiState.update { it.copy(isRefreshing = true) }
             authRepository.refreshUsers()
-            productRepository.syncProductsFromRemote()
-            orderRepository.syncOrdersFromRemote()
+            productRepository.refreshProducts()
+            orderRepository.refreshOrders()
             _uiState.update {
                 it.copy(
                     isRefreshing = false,
-                    statusMessage = "Panel de administración actualizado."
+                    statusMessage = UiMessage.of(R.string.msg_admin_refreshed)
                 )
             }
         }
@@ -80,9 +84,9 @@ class AdminViewModel(
             _uiState.update {
                 it.copy(
                     statusMessage = if (ok) {
-                        "Rol actualizado a ${roleText(newRole)}"
+                        UiMessage.of(R.string.msg_role_updated, roleMessage(newRole))
                     } else {
-                        "No se pudo actualizar el rol."
+                        UiMessage.of(R.string.msg_role_update_failed)
                     }
                 )
             }
@@ -95,9 +99,9 @@ class AdminViewModel(
             _uiState.update {
                 it.copy(
                     statusMessage = if (ok) {
-                        "Pedido #$orderId actualizado: ${orderStatusText(newStatus)}"
+                        UiMessage.of(R.string.msg_order_updated, orderId, orderStatusMessage(newStatus))
                     } else {
-                        "No se pudo actualizar el pedido #$orderId"
+                        UiMessage.of(R.string.msg_order_update_failed, orderId)
                     }
                 )
             }
@@ -110,9 +114,9 @@ class AdminViewModel(
             _uiState.update {
                 it.copy(
                     statusMessage = if (ok) {
-                        "Producto eliminado: ${product.name}"
+                        UiMessage.of(R.string.msg_product_deleted, product.name)
                     } else {
-                        "No se pudo eliminar \"${product.name}\". Revisa la conexión."
+                        UiMessage.of(R.string.msg_product_delete_failed_connection, product.name)
                     }
                 )
             }

@@ -1,5 +1,7 @@
 package com.example.zoco.ui.auth
 
+import com.example.zoco.domain.model.toUiMessage
+import com.example.zoco.domain.model.UiMessage
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.zoco.domain.repository.AuthRepository
@@ -11,7 +13,7 @@ import kotlinx.coroutines.launch
 
 data class AuthUiState(
     val isLoading: Boolean = false,
-    val errorMessage: String? = null
+    val errorMessage: UiMessage? = null
 )
 
 /**
@@ -50,7 +52,7 @@ class AuthViewModel(
             _uiState.update {
                 it.copy(
                     isLoading = false,
-                    errorMessage = result.exceptionOrNull()?.message
+                    errorMessage = result.exceptionOrNull()?.let { it.toUiMessage(UiMessage.raw(it.message.orEmpty())) }
                 )
             }
         }

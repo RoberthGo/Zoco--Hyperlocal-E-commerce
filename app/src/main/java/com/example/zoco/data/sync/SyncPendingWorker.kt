@@ -19,8 +19,8 @@ class SyncPendingWorker(
     override suspend fun doWork(): Result {
         val app = applicationContext as ZocoApplication
 
-        val productsOk = app.productRepository.pushPending()
-        val ordersOk = app.orderRepository.pushPending()
+        val productsOk = app.productRepository.uploadPending()
+        val ordersOk = app.orderRepository.uploadPending()
 
         return if (productsOk && ordersOk) {
             Log.d(TAG, "Cola de sincronización vaciada correctamente")
