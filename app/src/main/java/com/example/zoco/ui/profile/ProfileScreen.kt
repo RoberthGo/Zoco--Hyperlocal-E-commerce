@@ -155,59 +155,22 @@ private fun ProfileHeaderCard(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
+            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 ProfilePhoto(photoUri = uiState.photoUri, description = uiState.userName)
-
-                Column(
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(start = 14.dp)
-                ) {
-                    // Nombre con lápiz para editarlo
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        Text(
-                            text = uiState.userName,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
-                        )
-                        IconButton(
-                            onClick = { showNameDialog = true },
-                            modifier = Modifier.size(24.dp)
-                        ) {
-                            Icon(
-                                Icons.Default.Edit,
-                                contentDescription = stringResource(R.string.btn_edit_profile),
-                                modifier = Modifier.size(16.dp),
-                                tint = MaterialTheme.colorScheme.primary
-                            )
-                        }
-                    }
-                    // Etiqueta del rol y nombre de usuario
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        RoleBadge(role = uiState.currentSession.role)
-                        Text(
-                            text = "@${uiState.currentSession.username}",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.outline
-                        )
-                    }
-                }
+                NameAndRole(
+                    name = uiState.userName,
+                    username = uiState.currentSession.username,
+                    role = uiState.currentSession.role,
+                    onEditName = { showNameDialog = true },
+                    modifier = Modifier.weight(1f).padding(start = 14.dp)
+                )
             }
 
             // Mensaje de la última acción (por ejemplo, "no se pudo subir la foto")
-            if (uiState.authMessage != null) {
+            uiState.authMessage?.let { message ->
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = uiState.authMessage.asString(),
+                    text = message.asString(),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.SemiBold
@@ -215,29 +178,7 @@ private fun ProfileHeaderCard(
             }
 
             Spacer(modifier = Modifier.height(12.dp))
-
-            // Botones para cambiar la foto
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                FilledTonalButton(
-                    onClick = photoPicker.pickFromGallery,
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Icon(Icons.Default.PhotoLibrary, contentDescription = null, modifier = Modifier.size(16.dp))
-                    Spacer(modifier = Modifier.size(4.dp))
-                    Text(stringResource(R.string.btn_select_gallery), style = MaterialTheme.typography.labelMedium)
-                }
-                FilledTonalButton(
-                    onClick = photoPicker.takePhoto,
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Icon(Icons.Default.CameraAlt, contentDescription = null, modifier = Modifier.size(16.dp))
-                    Spacer(modifier = Modifier.size(4.dp))
-                    Text(stringResource(R.string.btn_take_photo), style = MaterialTheme.typography.labelMedium)
-                }
-            }
+            PhotoButtons(photoPicker)
         }
     }
 
@@ -247,6 +188,51 @@ private fun ProfileHeaderCard(
             onSave = onUpdateName,
             onDismiss = { showNameDialog = false }
         )
+    }
+}
+
+/** Nombre con un lápiz para editarlo, y debajo la etiqueta del rol y el nombre de usuario. */
+@Composable
+private fun NameAndRole(
+    name: String,
+    username: String,
+    role: UserRole,
+    onEditName: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(modifier = modifier) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(text = name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            IconButton(onClick = onEditName, modifier = Modifier.size(24.dp)) {
+                Icon(
+                    Icons.Default.Edit,
+                    contentDescription = stringResource(R.string.btn_edit_profile),
+                    modifier = Modifier.size(16.dp),
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            }
+        }
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            RoleBadge(role = role)
+            Text(text = "@$username", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.outline)
+        }
+    }
+}
+
+/** Botones "Galería" y "Tomar foto". */
+@Composable
+private fun PhotoButtons(photoPicker: PhotoPicker) {
+    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        FilledTonalButton(onClick = photoPicker.pickFromGallery, modifier = Modifier.weight(1f)) {
+            Icon(Icons.Default.PhotoLibrary, contentDescription = null, modifier = Modifier.size(16.dp))
+            Spacer(modifier = Modifier.size(4.dp))
+            Text(stringResource(R.string.btn_select_gallery), style = MaterialTheme.typography.labelMedium)
+        }
+        FilledTonalButton(onClick = photoPicker.takePhoto, modifier = Modifier.weight(1f)) {
+            Icon(Icons.Default.CameraAlt, contentDescription = null, modifier = Modifier.size(16.dp))
+            Spacer(modifier = Modifier.size(4.dp))
+            Text(stringResource(R.string.btn_take_photo), style = MaterialTheme.typography.labelMedium)
+        }
     }
 }
 
@@ -394,288 +380,4 @@ private fun rememberPhotoPicker(onPhotoChosen: (String?) -> Unit): PhotoPicker {
             if (hasPermission) cameraLauncher.launch(null) else cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
         }
     )
-}
-
-// ---------------------------------------------------------------------------------------------
-// 2. Convertirse en vendedor (solo compradores)
-// ---------------------------------------------------------------------------------------------
-
-@Composable
-private fun BecomeSellerCard(onBecomeSeller: (String?) -> Unit) {
-    var showDialog by remember { mutableStateOf(false) }
-
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    Icons.Default.Storefront,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onPrimaryContainer
-                )
-                Spacer(modifier = Modifier.size(8.dp))
-                Text(
-                    text = stringResource(R.string.btn_become_seller),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer
-                )
-            }
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = stringResource(R.string.become_seller_subtitle),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onPrimaryContainer
-            )
-            Spacer(modifier = Modifier.height(10.dp))
-            Button(
-                onClick = { showDialog = true },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Icon(Icons.Default.Storefront, contentDescription = null, modifier = Modifier.size(18.dp))
-                Spacer(modifier = Modifier.size(6.dp))
-                Text(stringResource(R.string.btn_become_seller))
-            }
-        }
-    }
-
-    if (showDialog) {
-        BecomeSellerDialog(
-            onConfirm = onBecomeSeller,
-            onDismiss = { showDialog = false }
-        )
-    }
-}
-
-/** Pregunta el nombre del negocio (opcional) y confirma el cambio a vendedor. */
-@Composable
-private fun BecomeSellerDialog(
-    onConfirm: (businessName: String?) -> Unit,
-    onDismiss: () -> Unit
-) {
-    var businessName by remember { mutableStateOf("") }
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.dialog_become_seller_title)) },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text(
-                    text = stringResource(R.string.dialog_become_seller_msg),
-                    style = MaterialTheme.typography.bodySmall
-                )
-                OutlinedTextField(
-                    value = businessName,
-                    onValueChange = { businessName = it },
-                    label = { Text(stringResource(R.string.dialog_business_name_label)) },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
-        },
-        confirmButton = {
-            Button(
-                onClick = {
-                    onConfirm(businessName.trim().ifBlank { null })
-                    onDismiss()
-                }
-            ) {
-                Text(stringResource(R.string.dialog_confirm_seller))
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(stringResource(R.string.dialog_cancel))
-            }
-        }
-    )
-}
-
-// ---------------------------------------------------------------------------------------------
-// 3a. Cambiar contraseña
-// ---------------------------------------------------------------------------------------------
-
-@Composable
-private fun ChangePasswordCard(
-    isBusy: Boolean,
-    passwordChanged: Boolean,
-    onChangePassword: (String, String) -> Unit,
-    onDialogClosed: () -> Unit
-) {
-    var showDialog by remember { mutableStateOf(false) }
-    // Cuando el servidor acepta el cambio, la ventana se cierra sola
-    if (passwordChanged && showDialog) {
-        showDialog = false
-        onDialogClosed()
-    }
-
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-    ) {
-        Column(modifier = Modifier.padding(14.dp)) {
-            OutlinedButton(onClick = { showDialog = true }, enabled = !isBusy, modifier = Modifier.fillMaxWidth()) {
-                Text(stringResource(R.string.btn_change_password))
-            }
-        }
-    }
-
-    if (showDialog) {
-        ChangePasswordDialog(
-            isBusy = isBusy,
-            onConfirm = onChangePassword,
-            onDismiss = { showDialog = false }
-        )
-    }
-}
-
-@Composable
-private fun ChangePasswordDialog(
-    isBusy: Boolean,
-    onConfirm: (String, String) -> Unit,
-    onDismiss: () -> Unit
-) {
-    var current by remember { mutableStateOf("") }
-    var new by remember { mutableStateOf("") }
-    var repeat by remember { mutableStateOf("") }
-    val tooShort = new.isNotEmpty() && new.length < 6
-    val mismatch = repeat.isNotEmpty() && repeat != new
-    val canSave = current.isNotBlank() && new.length >= 6 && new == repeat && !isBusy
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.btn_change_password)) },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                PasswordInput(current, { current = it }, stringResource(R.string.password_current))
-                PasswordInput(new, { new = it }, stringResource(R.string.password_new), isError = tooShort)
-                PasswordInput(repeat, { repeat = it }, stringResource(R.string.auth_confirm_password_label), isError = mismatch)
-                if (tooShort) {
-                    Text(stringResource(R.string.auth_error_password_short), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
-                } else if (mismatch) {
-                    Text(stringResource(R.string.auth_error_password_mismatch), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
-                }
-            }
-        },
-        confirmButton = {
-            TextButton(onClick = { onConfirm(current, new) }, enabled = canSave) {
-                Text(stringResource(R.string.dialog_save))
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text(stringResource(R.string.dialog_cancel)) }
-        }
-    )
-}
-
-@Composable
-private fun PasswordInput(value: String, onValueChange: (String) -> Unit, label: String, isError: Boolean = false) {
-    OutlinedTextField(
-        value = value,
-        onValueChange = onValueChange,
-        label = { Text(label) },
-        singleLine = true,
-        isError = isError,
-        visualTransformation = PasswordVisualTransformation(),
-        modifier = Modifier.fillMaxWidth()
-    )
-}
-
-// ---------------------------------------------------------------------------------------------
-// 3. Cerrar sesión
-// ---------------------------------------------------------------------------------------------
-
-@Composable
-private fun LogoutCard(isBusy: Boolean, onLogout: () -> Unit) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-    ) {
-        Column(modifier = Modifier.padding(14.dp)) {
-            Text(
-                text = stringResource(R.string.logout_subtitle),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.outline
-            )
-            Spacer(modifier = Modifier.height(10.dp))
-            OutlinedButton(
-                onClick = onLogout,
-                enabled = !isBusy,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = null, modifier = Modifier.size(18.dp))
-                Spacer(modifier = Modifier.size(6.dp))
-                Text(stringResource(R.string.btn_logout))
-            }
-        }
-    }
-}
-
-// ---------------------------------------------------------------------------------------------
-// 4. Idioma
-// ---------------------------------------------------------------------------------------------
-
-@Composable
-private fun LanguageCard(selectedLanguage: String, onLanguageChange: (String) -> Unit) {
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Column(modifier = Modifier.padding(14.dp)) {
-            Text(
-                text = stringResource(R.string.preferences_title),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                RadioButton(
-                    selected = selectedLanguage == "es",
-                    onClick = { onLanguageChange("es") }
-                )
-                Text(stringResource(R.string.language_es), modifier = Modifier.padding(end = 16.dp))
-
-                RadioButton(
-                    selected = selectedLanguage == "en",
-                    onClick = { onLanguageChange("en") }
-                )
-                Text(stringResource(R.string.language_en))
-            }
-        }
-    }
-}
-
-// ---------------------------------------------------------------------------------------------
-// 5. Integrantes del equipo (criterio de la evaluación presencial)
-// ---------------------------------------------------------------------------------------------
-
-@Composable
-private fun TeamCard() {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-    ) {
-        Column(modifier = Modifier.padding(14.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    Icons.Default.Groups,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary
-                )
-                Spacer(modifier = Modifier.size(8.dp))
-                Text(
-                    text = stringResource(R.string.team_title),
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-            Spacer(modifier = Modifier.height(6.dp))
-            Text(
-                text = stringResource(R.string.team_members),
-                style = MaterialTheme.typography.bodyMedium
-            )
-        }
-    }
 }

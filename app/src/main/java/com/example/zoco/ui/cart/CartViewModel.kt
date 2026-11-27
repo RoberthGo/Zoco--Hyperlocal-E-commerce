@@ -77,9 +77,7 @@ class CartViewModel(
                     if (isServerReachable) {
                         orders
                     } else {
-                        orders.filterNot { 
-                            it.isRemote || it.customerName.startsWith("[En Línea]") || it.customerName.contains("(Web API)") 
-                        }
+                        orders.filterNot { it.isRemote }
                     }
                 }.collect { visibleOrders ->
                     _uiState.update { it.copy(recentOrders = visibleOrders, isServerReachable = _isServerReachable.value) }

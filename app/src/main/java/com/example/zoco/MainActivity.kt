@@ -63,6 +63,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import androidx.navigation.NavHostController
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
@@ -122,91 +123,35 @@ fun ZocoApp(
 ) {
     val navController = rememberNavController()
     val snackbarHostState = remember { SnackbarHostState() }
+    val vms = rememberAppViewModels(viewModelFactory)
 
-    // --- 1. Un ViewModel por pantalla y su estado actual ---
-    val catalogViewModel: CatalogViewModel = viewModel(factory = viewModelFactory)
-    val cartViewModel: CartViewModel = viewModel(factory = viewModelFactory)
-    val sellerViewModel: SellerViewModel = viewModel(factory = viewModelFactory)
-    val adminViewModel: AdminViewModel = viewModel(factory = viewModelFactory)
-    val profileViewModel: ProfileViewModel = viewModel(factory = viewModelFactory)
-    val authViewModel: AuthViewModel = viewModel(factory = viewModelFactory)
-    val notificationsViewModel: NotificationsViewModel = viewModel(factory = viewModelFactory)
-
-    val catalogState by catalogViewModel.uiState.collectAsStateWithLifecycle()
-    val cartState by cartViewModel.uiState.collectAsStateWithLifecycle()
-    val sellerState by sellerViewModel.uiState.collectAsStateWithLifecycle()
-    val adminState by adminViewModel.uiState.collectAsStateWithLifecycle()
-    val profileState by profileViewModel.uiState.collectAsStateWithLifecycle()
-    val authState by authViewModel.uiState.collectAsStateWithLifecycle()
-    val notificationsState by notificationsViewModel.uiState.collectAsStateWithLifecycle()
+    val profileState by vms.profile.uiState.collectAsStateWithLifecycle()
+    val notificationsState by vms.notifications.uiState.collectAsStateWithLifecycle()
     var showNotifications by remember { mutableStateOf(false) }
 
     val session = profileState.currentSession
-    val isLoggedIn = session.isLoggedIn
     val visibleScreens = remember(session.role) { Screen.visibleFor(session.role) }
-
     val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route
     val currentScreen = Screen.fromRoute(currentRoute)
 
-    // --- 2. Reglas automáticas ---
-    // Si la pestaña actual ya no está permitida para el rol (por ejemplo, al cambiar de cuenta), volver al catálogo.
-    LaunchedEffect(session.role, currentRoute) {
-        if (currentScreen !in visibleScreens) {
-            navController.navigate(Screen.CATALOG.route) {
-                popUpTo(navController.graph.findStartDestination().id) { inclusive = false }
-                launchSingleTop = true
-            }
-        }
-    }
+    AutomaticRules(
+        session = session,
+        vms = vms,
+        navController = navController,
+        isCurrentTabAllowed = currentScreen in visibleScreens,
+        currentRoute = currentRoute,
+        onLoggedOut = { showNotifications = false }
+    )
 
-    // Al cerrar sesión se olvidan las notificaciones de esa cuenta
-    LaunchedEffect(isLoggedIn) {
-        if (!isLoggedIn) {
-            notificationsViewModel.clear()
-            showNotifications = false
-        }
-    }
-
-    // Al iniciar sesión (o cambiar de usuario/rol) se descargan los datos del servidor.
-    LaunchedEffect(session.username, session.role) {
-        if (!isLoggedIn) return@LaunchedEffect
-        notificationsViewModel.refresh()
-        catalogViewModel.refreshFromServer()
-        cartViewModel.refreshOrdersFromServer()
-        if (session.role == UserRole.ADMIN) {
-            adminViewModel.refreshAll()
-        }
-    }
-
-    // --- 3. Contenido de las pestañas (se reutiliza en barra lateral y barra inferior) ---
-    val tabsContent: @Composable (Modifier) -> Unit = { contentModifier ->
-        ZocoNavHost(
-            navController = navController,
-            catalogViewModel = catalogViewModel,
-            catalogState = catalogState,
-            cartViewModel = cartViewModel,
-            cartState = cartState,
-            sellerViewModel = sellerViewModel,
-            sellerState = sellerState,
-            adminViewModel = adminViewModel,
-            adminState = adminState,
-            profileViewModel = profileViewModel,
-            profileState = profileState,
-            snackbarHostState = snackbarHostState,
-            modifier = contentModifier
-        )
-    }
-
-    if (showNotifications && isLoggedIn) {
+    if (showNotifications && session.isLoggedIn) {
         NotificationsDialog(
             state = notificationsState,
-            onMarkRead = notificationsViewModel::markRead,
-            onMarkAllRead = notificationsViewModel::markAllRead,
+            onMarkRead = vms.notifications::markRead,
+            onMarkAllRead = vms.notifications::markAllRead,
             onDismiss = { showNotifications = false }
         )
     }
 
-    // --- 4. Pantalla según idioma, tamaño de ventana y estado de sesión ---
     LanguageProvider(languageTag = profileState.selectedLanguage) {
         BoxWithConstraints(modifier = modifier.fillMaxSize()) {
             val windowSize = WindowSize(
@@ -214,40 +159,28 @@ fun ZocoApp(
                 isShort = maxHeight < Breakpoints.SHORT_HEIGHT
             )
             CompositionLocalProvider(LocalWindowSize provides windowSize) {
-                if (!isLoggedIn) {
-                    Scaffold(
-                        snackbarHost = { SnackbarHost(snackbarHostState) },
-                        topBar = { ZocoTopBar(title = stringResource(R.string.app_name)) }
-                    ) { innerPadding ->
-                        AuthScreen(
-                            uiState = authState,
-                            onLogin = authViewModel::login,
-                            onRegister = authViewModel::register,
-                            onClearError = authViewModel::clearError,
-                            modifier = Modifier.padding(innerPadding)
-                        )
-                    }
+                if (!session.isLoggedIn) {
+                    LoginScaffold(vms.auth, snackbarHostState)
                 } else {
+                    val cartState by vms.cart.uiState.collectAsStateWithLifecycle()
                     val menu = MenuState(
                         screens = visibleScreens,
                         current = currentScreen,
                         cartItemCount = cartState.items.size,
                         unreadNotifications = notificationsState.unreadCount,
                         onOpenNotifications = {
-                            notificationsViewModel.refresh()
+                            vms.notifications.refresh()
                             showNotifications = true
                         },
                         onSelect = { navigateToTab(navController, it, currentRoute) }
                     )
+                    val tabsContent: @Composable (Modifier) -> Unit = { contentModifier ->
+                        TabsContent(navController, vms, snackbarHostState, contentModifier)
+                    }
                     when (navigationStyleFor(windowSize)) {
                         NavigationStyle.BOTTOM_BAR -> BottomBarLayout(menu, snackbarHostState, tabsContent)
                         NavigationStyle.SIDE_RAIL -> SideRailLayout(menu, currentScreen, snackbarHostState, tabsContent)
-                        NavigationStyle.SIDE_DRAWER -> SideDrawerLayout(
-                            menu = menu,
-                            session = session,
-                            snackbarHostState = snackbarHostState,
-                            content = tabsContent
-                        )
+                        NavigationStyle.SIDE_DRAWER -> SideDrawerLayout(menu, session, snackbarHostState, tabsContent)
                     }
                 }
             }
@@ -255,198 +188,116 @@ fun ZocoApp(
     }
 }
 
-/** Qué menú de navegación se usa en cada tamaño de ventana. */
-private enum class NavigationStyle {
-    /** Celular en vertical: barra abajo. */
-    BOTTOM_BAR,
-
-    /** Plegable, tablet pequeña o celular en horizontal: columna de íconos a la izquierda. */
-    SIDE_RAIL,
-
-    /** Tablet grande o escritorio: menú lateral con íconos y nombres. */
-    SIDE_DRAWER
-}
-
-private fun navigationStyleFor(size: WindowSize): NavigationStyle = when {
-    size.isCompact -> NavigationStyle.BOTTOM_BAR
-    size.widthClass == WidthClass.MEDIUM || size.isShort -> NavigationStyle.SIDE_RAIL
-    else -> NavigationStyle.SIDE_DRAWER
-}
-
-/** Todo lo que necesita un menú de navegación para dibujarse. */
-private class MenuState(
-    val screens: List<Screen>,
-    val current: Screen,
-    val cartItemCount: Int,
-    val unreadNotifications: Int,
-    val onOpenNotifications: () -> Unit,
-    val onSelect: (Screen) -> Unit
+/** Los ViewModels de la app (uno por pestaña, más acceso y notificaciones). */
+private class AppViewModels(
+    val catalog: CatalogViewModel,
+    val cart: CartViewModel,
+    val seller: SellerViewModel,
+    val admin: AdminViewModel,
+    val profile: ProfileViewModel,
+    val auth: AuthViewModel,
+    val notifications: NotificationsViewModel
 )
 
-/** Celular: contenido arriba y barra de pestañas abajo. */
 @Composable
-private fun BottomBarLayout(
-    menu: MenuState,
-    snackbarHostState: SnackbarHostState,
-    content: @Composable (Modifier) -> Unit
+private fun rememberAppViewModels(factory: ViewModelFactory) = AppViewModels(
+    catalog = viewModel(factory = factory),
+    cart = viewModel(factory = factory),
+    seller = viewModel(factory = factory),
+    admin = viewModel(factory = factory),
+    profile = viewModel(factory = factory),
+    auth = viewModel(factory = factory),
+    notifications = viewModel(factory = factory)
+)
+
+/**
+ * Cosas que pasan solas según la sesión:
+ *  1. Si la pestaña actual ya no está permitida para el rol, se vuelve al catálogo.
+ *  2. Al cerrar sesión se olvidan las notificaciones.
+ *  3. Al iniciar sesión (o cambiar de usuario o rol) se descargan los datos del servidor.
+ */
+@Composable
+private fun AutomaticRules(
+    session: UserSession,
+    vms: AppViewModels,
+    navController: NavController,
+    isCurrentTabAllowed: Boolean,
+    currentRoute: String?,
+    onLoggedOut: () -> Unit
 ) {
+    LaunchedEffect(session.role, currentRoute) {
+        if (!isCurrentTabAllowed) {
+            navController.navigate(Screen.CATALOG.route) {
+                popUpTo(navController.graph.findStartDestination().id) { inclusive = false }
+                launchSingleTop = true
+            }
+        }
+    }
+
+    LaunchedEffect(session.isLoggedIn) {
+        if (!session.isLoggedIn) {
+            vms.notifications.clear()
+            onLoggedOut()
+        }
+    }
+
+    LaunchedEffect(session.username, session.role) {
+        if (!session.isLoggedIn) return@LaunchedEffect
+        vms.notifications.refresh()
+        vms.catalog.refreshFromServer()
+        vms.cart.refreshOrdersFromServer()
+        if (session.role == UserRole.ADMIN) {
+            vms.admin.refreshAll()
+        }
+    }
+}
+
+/** Pantalla de acceso (todavía sin sesión), con su barra superior. */
+@Composable
+private fun LoginScaffold(authViewModel: AuthViewModel, snackbarHostState: SnackbarHostState) {
+    val authState by authViewModel.uiState.collectAsStateWithLifecycle()
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
-        topBar = { ZocoTopBar(stringResource(R.string.app_name), menu.unreadNotifications, menu.onOpenNotifications) },
-        bottomBar = {
-            NavigationBar {
-                menu.screens.forEach { screen ->
-                    NavigationBarItem(
-                        selected = menu.current == screen,
-                        onClick = { menu.onSelect(screen) },
-                        icon = { TabIcon(screen, menu.cartItemCount) },
-                        label = { Text(stringResource(screen.titleResId)) }
-                    )
-                }
-            }
-        }
-    ) { innerPadding -> content(Modifier.padding(innerPadding)) }
+        topBar = { ZocoTopBar(title = stringResource(R.string.app_name)) }
+    ) { innerPadding ->
+        AuthScreen(
+            uiState = authState,
+            onLogin = authViewModel::login,
+            onRegister = authViewModel::register,
+            onClearError = authViewModel::clearError,
+            modifier = Modifier.padding(innerPadding)
+        )
+    }
 }
 
-/** Plegable o tablet pequeña: columna de íconos a la izquierda y contenido a la derecha. */
+/** El contenido de las pestañas: el estado de cada pantalla y la navegación entre ellas. */
 @Composable
-private fun SideRailLayout(
-    menu: MenuState,
-    currentScreen: Screen,
+private fun TabsContent(
+    navController: NavController,
+    vms: AppViewModels,
     snackbarHostState: SnackbarHostState,
-    content: @Composable (Modifier) -> Unit
+    modifier: Modifier
 ) {
-    Row(modifier = Modifier.fillMaxSize()) {
-        NavigationRail {
-            menu.screens.forEach { screen ->
-                NavigationRailItem(
-                    selected = menu.current == screen,
-                    onClick = { menu.onSelect(screen) },
-                    icon = { TabIcon(screen, menu.cartItemCount) },
-                    label = { Text(stringResource(screen.titleResId)) }
-                )
-            }
-        }
-        Scaffold(
-            snackbarHost = { SnackbarHost(snackbarHostState) },
-            topBar = {
-                ZocoTopBar(
-                    title = stringResource(R.string.app_name) + " - " + stringResource(currentScreen.titleResId),
-                    unreadNotifications = menu.unreadNotifications,
-                    onOpenNotifications = menu.onOpenNotifications
-                )
-            }
-        ) { innerPadding -> content(Modifier.padding(innerPadding)) }
-    }
-}
-
-/** Tablet grande: menú lateral fijo con el nombre de la persona y su rol, y el contenido al lado. */
-@Composable
-private fun SideDrawerLayout(
-    menu: MenuState,
-    session: UserSession,
-    snackbarHostState: SnackbarHostState,
-    content: @Composable (Modifier) -> Unit
-) {
-    PermanentNavigationDrawer(
-        drawerContent = {
-            PermanentDrawerSheet(modifier = Modifier.width(DRAWER_WIDTH)) {
-                DrawerHeader(session)
-                menu.screens.forEach { screen ->
-                    NavigationDrawerItem(
-                        selected = menu.current == screen,
-                        onClick = { menu.onSelect(screen) },
-                        icon = { TabIcon(screen, menu.cartItemCount) },
-                        label = { Text(stringResource(screen.titleResId)) },
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 2.dp)
-                    )
-                }
-            }
-        }
-    ) {
-        Scaffold(
-            snackbarHost = { SnackbarHost(snackbarHostState) },
-            topBar = { ZocoTopBar(stringResource(menu.current.titleResId), menu.unreadNotifications, menu.onOpenNotifications) }
-        ) { innerPadding -> content(Modifier.padding(innerPadding)) }
-    }
-}
-
-/** Parte de arriba del menú lateral: nombre de la app, de la persona y su rol. */
-@Composable
-private fun DrawerHeader(session: UserSession) {
-    Column(modifier = Modifier.padding(start = 24.dp, end = 24.dp, top = 28.dp, bottom = 20.dp)) {
-        Text(
-            text = stringResource(R.string.app_name),
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.primary
-        )
-        Spacer(Modifier.height(16.dp))
-        Text(
-            text = session.fullName.ifBlank { session.username },
-            style = MaterialTheme.typography.titleMedium,
-            maxLines = 1
-        )
-        Text(
-            text = stringResource(
-                when (session.role) {
-                    UserRole.BUYER -> R.string.role_buyer
-                    UserRole.SELLER -> R.string.role_seller
-                    UserRole.ADMIN -> R.string.role_admin
-                }
-            ),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-    }
-}
-
-private val DRAWER_WIDTH = 280.dp
-
-/** Barra superior con el color principal de la app. */
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun ZocoTopBar(title: String, unreadNotifications: Int = -1, onOpenNotifications: () -> Unit = {}) {
-    TopAppBar(
-        title = { Text(title, fontWeight = FontWeight.Bold) },
-        actions = {
-            // La campana solo aparece con sesión iniciada (unreadNotifications >= 0)
-            if (unreadNotifications >= 0) {
-                IconButton(onClick = onOpenNotifications) {
-                    BadgedBox(badge = { if (unreadNotifications > 0) Badge { Text(unreadNotifications.toString()) } }) {
-                        Icon(Icons.Default.Notifications, contentDescription = stringResource(R.string.notifications_title))
-                    }
-                }
-            }
-        },
-        colors = TopAppBarDefaults.topAppBarColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer,
-            titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
-        )
+    val catalogState by vms.catalog.uiState.collectAsStateWithLifecycle()
+    val cartState by vms.cart.uiState.collectAsStateWithLifecycle()
+    val sellerState by vms.seller.uiState.collectAsStateWithLifecycle()
+    val adminState by vms.admin.uiState.collectAsStateWithLifecycle()
+    val profileState by vms.profile.uiState.collectAsStateWithLifecycle()
+    ZocoNavHost(
+        navController = navController as NavHostController,
+        catalogViewModel = vms.catalog,
+        catalogState = catalogState,
+        cartViewModel = vms.cart,
+        cartState = cartState,
+        sellerViewModel = vms.seller,
+        sellerState = sellerState,
+        adminViewModel = vms.admin,
+        adminState = adminState,
+        profileViewModel = vms.profile,
+        profileState = profileState,
+        snackbarHostState = snackbarHostState,
+        modifier = modifier
     )
-}
-
-/** Ícono de una pestaña; en el carrito muestra un globo con la cantidad de productos. */
-@Composable
-private fun TabIcon(screen: Screen, cartItemCount: Int) {
-    val icon = @Composable {
-        Icon(screen.icon, contentDescription = stringResource(screen.titleResId))
-    }
-    if (screen == Screen.CART && cartItemCount > 0) {
-        BadgedBox(badge = { Badge { Text(cartItemCount.toString()) } }) { icon() }
-    } else {
-        icon()
-    }
-}
-
-/** Cambia de pestaña conservando el estado de cada una (scroll, texto escrito, etc.). */
-private fun navigateToTab(navController: NavController, screen: Screen, currentRoute: String?) {
-    if (currentRoute == screen.route) return
-    navController.navigate(screen.route) {
-        popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-        launchSingleTop = true
-        restoreState = true
-    }
 }
 
 /**

@@ -117,9 +117,8 @@ class CatalogViewModel(
         initialValue = CatalogUiState(isLoading = true)
     )
 
-    /** ¿El producto vino del servidor? (incluye datos viejos marcados con etiquetas de texto). */
-    private fun isServerItem(product: Product): Boolean =
-        product.isRemote || product.name.startsWith("[En Línea]") || product.producerName.contains("[Web API]")
+    /** ¿El producto vino del servidor? */
+    private fun isServerItem(product: Product): Boolean = product.isRemote
 
     /** ¿El producto cumple la búsqueda, la categoría y el filtro de entrega express? */
     private fun matches(product: Product, filters: CatalogFilters): Boolean {
