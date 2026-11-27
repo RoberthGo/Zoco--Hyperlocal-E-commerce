@@ -4,8 +4,6 @@ import com.example.zoco.ui.common.orderStatusMessage
 import com.example.zoco.ui.common.roleMessage
 import com.example.zoco.R
 import com.example.zoco.domain.model.UiMessage
-import com.example.zoco.ui.common.roleText
-import com.example.zoco.ui.common.orderStatusText
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.zoco.domain.model.ManagedUser

@@ -93,7 +93,7 @@
     <!-- Profile Screen -->
     <string name="profile_title">Perfil de Usuario</string>
     <string name="user_name">Comunidad Zoco</string>
-    <string name="user_role">Consumidor y Productor Local</string>
+    <string name="msg_seller_invalid_form">Completa todos los campos obligatorios; el precio y las unidades deben ser mayores a 0.</string>
     <string name="preferences_title">Preferencias</string>
     <string name="language_label">Idioma de la aplicación</string>
     <string name="language_es">Español</string>

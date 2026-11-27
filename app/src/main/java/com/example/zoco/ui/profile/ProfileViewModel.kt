@@ -7,7 +7,6 @@ import com.example.zoco.domain.repository.OrderRepository
 import android.content.SharedPreferences
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.zoco.domain.model.UserRole
 import com.example.zoco.domain.model.UserSession
 import com.example.zoco.domain.repository.AuthRepository
 import com.example.zoco.domain.repository.UserProfileRepository
@@ -20,7 +19,6 @@ import java.util.Locale
 
 data class ProfileUiState(
     val userName: String = "Comunidad Zoco",
-    val userRole: String = "Consumidor y Productor Local",
     val photoUri: String? = null,
     val selectedLanguage: String = "es",
     val currentSession: UserSession = UserSession.LOGGED_OUT,
@@ -56,11 +54,6 @@ class ProfileViewModel(
                         current.copy(
                             currentSession = session,
                             userName = session.fullName,
-                            userRole = when (session.role) {
-                                UserRole.BUYER -> "Comprador"
-                                UserRole.SELLER -> "Vendedor"
-                                UserRole.ADMIN -> "Administrador"
-                            },
                             photoUri = session.photoUri ?: current.photoUri
                         )
                     }
@@ -72,7 +65,6 @@ class ProfileViewModel(
                     _uiState.update { current ->
                         current.copy(
                             userName = profile.name,
-                            userRole = profile.role,
                             photoUri = profile.photoUri
                         )
                     }

@@ -46,6 +46,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import coil.compose.AsyncImage
 import com.example.zoco.R
+import com.example.zoco.ui.common.asString
 import com.example.zoco.domain.model.ProductCategory
 import java.io.File
 
@@ -106,7 +107,7 @@ private fun FormBanners(uiState: SellerUiState) {
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text(text = error, color = MaterialTheme.colorScheme.onErrorContainer, modifier = Modifier.padding(14.dp))
+            Text(text = error.asString(), color = MaterialTheme.colorScheme.onErrorContainer, modifier = Modifier.padding(14.dp))
         }
     }
 }

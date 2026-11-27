@@ -3,7 +3,6 @@ package com.example.zoco.ui.seller
 import com.example.zoco.ui.common.orderStatusMessage
 import com.example.zoco.R
 import com.example.zoco.domain.model.UiMessage
-import com.example.zoco.ui.common.orderStatusText
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.zoco.domain.model.Order
@@ -30,7 +29,7 @@ data class SellerUiState(
     val isExpressDelivery: Boolean = false,
     val imageUri: String? = null,
     val isSavedSuccess: Boolean = false,
-    val errorMessage: String? = null,
+    val errorMessage: UiMessage? = null,
     val myProducts: List<Product> = emptyList(),
     val receivedOrders: List<Order> = emptyList(),
     val currentSession: UserSession = UserSession.LOGGED_OUT,
@@ -100,7 +99,7 @@ class SellerViewModel(
 
         if (state.name.isBlank() || state.producerName.isBlank() || parsedPrice == null || parsedPrice <= 0 || parsedStock == null || parsedStock <= 0) {
             _uiState.update {
-                it.copy(errorMessage = "Por favor completa todos los campos requeridos correctamente (el precio y stock deben ser mayores a 0).")
+                it.copy(errorMessage = UiMessage.of(R.string.msg_seller_invalid_form))
             }
             return
         }

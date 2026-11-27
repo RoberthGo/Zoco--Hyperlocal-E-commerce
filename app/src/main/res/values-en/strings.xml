@@ -93,7 +93,7 @@
     <!-- Profile Screen -->
     <string name="profile_title">User Profile</string>
     <string name="user_name">Zoco Community</string>
-    <string name="user_role">Local Consumer &amp; Producer</string>
+    <string name="msg_seller_invalid_form">Fill in all required fields; price and stock must be greater than 0.</string>
     <string name="preferences_title">Preferences</string>
     <string name="language_label">App Language</string>
     <string name="language_es">Spanish</string>
